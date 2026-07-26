@@ -4,6 +4,44 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const DB_PATH = path.join(__dirname, '..', 'data', 'db.json');
+export const defaultSiteSettings = {
+    siteTitle: 'Georgian\nInstitute of\nPsychosynthesis',
+    navHome: 'მთავარი',
+    navAboutDropdown: 'ჩვენ შესახებ',
+    navHistory: 'ინსტიტუტის ისტორია',
+    navFounder: 'დამფუძნებელი',
+    navTrainers: 'ტრენერები',
+    navPsychosynthesisAbout: 'ფსიქოსინთეზის შესახებ',
+    navProgramDropdown: 'სასწავლო პროგრამა',
+    navAcademic: 'აკადემიური პორტალი',
+    navResources: 'რესურსები',
+    navEvents: 'ღონისძიებები',
+    navPractice: 'მედიტაციის ოთახი',
+    navWorkspace: 'სამუშაო სივრცე',
+    navContact: 'კონტაქტი',
+    academicCoursesTab: 'აკადემიური კურსები',
+    academicLibraryTab: 'ბიბლიოთეკა',
+    academicBlogsTab: 'ბლოგები და პუბლიკაციები',
+    academicTitle: 'აკადემიური პორტალი',
+    academicSubtitle: 'გაიღრმავეთ ცოდნა ფსიქოსინთეზის თეორიაში, გაეცანით კლასიკურ ნაშრომებსა და უახლეს სამეცნიერო პუბლიკაციებს.',
+    eventsTitle: 'საჯარო აქტივობები & ღონისძიებები',
+    eventsSubtitle: 'გაეცანით ჩვენს უახლოეს სემინარებს, ვორქშოფებსა და ინტენსიურ კურსებს.',
+    practiceTitle: 'მედიტაციისა და თვითშემეცნების ოთახი',
+    practiceSubtitle: 'შინაგანი მშვიდობის, დეიდენტიფიკაციისა და ცნობიერების ამაღლების პრაქტიკები.',
+    founderTitle: 'რობერტო ასაჯიოლი & დამფუძნებლები',
+    founderSubtitle: 'ფსიქოსინთეზის ფუძემდებლის ცხოვრება, ფილოსოფია და ინსტიტუტის აკადემიური გუნდი.',
+    historyText: 'ფსიქოსინთეზის ქართული ინსტიტუტი დაარსდა მეცნიერული და თერაპიული კვლევების ბაზაზე. ინსტიტუტის მიზანია რობერტო ასაჯიოლის ინტეგრალური ფსიქოლოგიის პრინციპების დანერგვა და პიროვნული ტრანსფორმაციის ხელშეწყობა.',
+    founderBioText: 'დოქტორი ელენე კვანტალიანი არის ინსტიტუტის დამფუძნებელი და წამყვანი ფსიქოთერაპევტი, რომელსაც აქვს 20-წლიანი გამოცდილება ინტეგრალურ ფსიქოლოგიასა და ფსიქოსინთეზის პრაქტიკაში.',
+    trainersText: 'ჩვენი აკადემიური გუნდი შედგება სერტიფიცირებული ფსიქოლოგების, თერაპევტებისა და ტრენერებისგან, რომლებიც ატარებენ ინტენსიურ კურსებსა და ინდივიდუალურ კონსულტაციებს.',
+    heroTitle: 'ინტეგრალური ფსიქოლოგია & პიროვნული ტრანსფორმაცია',
+    heroSubtitle: 'საქართველოს ფსიქოსინთეზის ინსტიტუტი - მეცნიერება შინაგანი მთლიანობისა და სულიერი ზრდის შესახებ.',
+    heroCtaButton: 'პროგრამების დათვალიერება',
+    aboutTitle: 'ინსტიტუტის შესახებ',
+    aboutText: 'ქართული ფსიქოსინთეზის ინსტიტუტი არის წამყვანი აკადემიური და თერაპიული ცენტრი საქართველოში, რომელიც ეფუძნება რობერტო ასაჯიოლის ნაშრომებს.',
+    footerCopyright: '© 2026 ფსიქოსინთეზის ქართული ინსტიტუტი. ყველა უფლება დაცულია.',
+    footerContactEmail: 'info@psychosynthesis.ge',
+    footerContactPhone: '+995 32 2 100 200'
+};
 // Default initial data to seed database
 const seedCourses = [
     {
@@ -131,7 +169,8 @@ const initialDb = {
     registrations: [],
     events: seedEvents,
     inquiries: seedInquiries,
-    seoSettings: seedSeo
+    seoSettings: seedSeo,
+    siteSettings: defaultSiteSettings
 };
 export class Database {
     static async ensureDir() {
@@ -150,7 +189,7 @@ export class Database {
             const data = JSON.parse(content);
             // Upgrade database schema dynamically if older keys are missing
             let upgraded = false;
-            const keys = ['courses', 'resources', 'blogs', 'registrations', 'events', 'inquiries', 'seoSettings'];
+            const keys = ['courses', 'resources', 'blogs', 'registrations', 'events', 'inquiries', 'seoSettings', 'siteSettings'];
             for (const key of keys) {
                 if (!data[key]) {
                     data[key] = initialDb[key];

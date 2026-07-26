@@ -27,28 +27,42 @@ const requireAdmin = async (req, res, next) => {
         res.status(500).json({ message: 'ადმინისტრატორის შემოწმების შეცდომა' });
     }
 };
-// Seed administrator account if it doesn't exist
+// Seed 3 administrator accounts if they don't exist
 const seedAdmin = async () => {
     try {
         const db = await Database.read();
-        const adminExists = db.users.find(u => u.username === 'admin');
-        if (!adminExists) {
-            const salt = await bcrypt.genSalt(10);
-            const passwordHash = await bcrypt.hash('admin123', salt);
-            const newAdmin = {
-                id: 'admin-user-id',
-                username: 'admin',
-                passwordHash,
-                name: 'გიორგი (ადმინისტრატორი)',
-                role: 'admin'
-            };
-            db.users.push(newAdmin);
+        const adminsToSeed = [
+            { id: 'admin-1-id', username: 'admin', name: 'Dr. Elene Kvantaliani (Chief Admin)' },
+            { id: 'admin-2-id', username: 'admin2', name: 'Dr. K. Abashidze (Senior Editor)' },
+            { id: 'admin-3-id', username: 'admin3', name: 'Nino Kapanadze (Project Director)' }
+        ];
+        let modified = false;
+        for (const a of adminsToSeed) {
+            const exists = db.users.find(u => u.username.toLowerCase() === a.username.toLowerCase());
+            if (!exists) {
+                const salt = await bcrypt.genSalt(10);
+                const passwordHash = await bcrypt.hash('admin123', salt);
+                db.users.push({
+                    id: a.id,
+                    username: a.username,
+                    passwordHash,
+                    name: a.name,
+                    role: 'admin'
+                });
+                modified = true;
+            }
+            else if (exists.role !== 'admin') {
+                exists.role = 'admin';
+                modified = true;
+            }
+        }
+        if (modified) {
             await Database.write(db);
-            console.log('Default administrator account created: admin / admin123');
+            console.log('3 Administrator accounts verified: admin, admin2, admin3 (password: admin123)');
         }
     }
     catch (error) {
-        console.error('Error seeding administrator account:', error);
+        console.error('Error seeding administrator accounts:', error);
     }
 };
 seedAdmin();
@@ -98,6 +112,15 @@ app.get('/api/seo', async (req, res) => {
     }
     catch (error) {
         res.status(500).json({ message: 'SEO პარამეტრების წაკითხვის შეცდომა' });
+    }
+});
+app.get('/api/settings', async (req, res) => {
+    try {
+        const db = await Database.read();
+        res.json(db.siteSettings);
+    }
+    catch (error) {
+        res.status(500).json({ message: 'საიტის პარამეტრების წაკითხვის შეცდომა' });
     }
 });
 // Submit user inquiry (public contact form)
@@ -801,6 +824,22 @@ app.put('/api/admin/seo', authenticateToken, requireAdmin, async (req, res) => {
     }
     catch (error) {
         res.status(500).json({ message: 'SEO პარამეტრების შენახვის შეცდომა' });
+    }
+});
+// 9. Site Settings & Dynamic Texts Manager
+app.get('/api/admin/settings', authenticateToken, requireAdmin, async (req, res) => {
+    const db = await Database.read();
+    res.json(db.siteSettings);
+});
+app.put('/api/admin/settings', authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const db = await Database.read();
+        db.siteSettings = { ...db.siteSettings, ...req.body };
+        await Database.write(db);
+        res.json(db.siteSettings);
+    }
+    catch (error) {
+        res.status(500).json({ message: 'საიტის პარამეტრების შენახვის შეცდომა' });
     }
 });
 app.listen(PORT, () => {
