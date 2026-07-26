@@ -9,16 +9,35 @@ interface LoginProps {
 export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
   const [isRegister, setIsRegister] = useState(false);
   const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [name, setName] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!username || !password || (isRegister && !name)) {
-      setError('გთხოვთ შეავსოთ ყველა ველი');
-      return;
+
+    if (isRegister) {
+      if (!username || !email || !password || !name) {
+        setError('გთხოვთ შეავსოთ ყველა აუცილებელი ველი');
+        return;
+      }
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email.trim())) {
+        setError('გთხოვთ მიუთითოთ სწორი ელ-ფოსტის მისამართი');
+        return;
+      }
+      if (confirmPassword && password !== confirmPassword) {
+        setError('პაროლები არ ემთხვევა ერთმანეთს');
+        return;
+      }
+    } else {
+      if (!username || !password) {
+        setError('გთხოვთ შეავსოთ მომხმარებლის სახელი და პაროლი');
+        return;
+      }
     }
 
     setLoading(true);
@@ -26,14 +45,31 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
 
     try {
       if (isRegister) {
-        const response = await api.post('/auth/register', { username, password, name });
-        onLoginSuccess(response.data.token, response.data.user);
+        const cleanEmail = email.trim().toLowerCase();
+        const payload = {
+          username: username.trim(),
+          email: cleanEmail,
+          name: name.trim(),
+          password,
+          confirmPassword: confirmPassword || password
+        };
+        const response = await api.post('/auth/register', payload);
+        const user = response.data.user || response.data;
+        const token = response.data.token || 'session-active';
+        onLoginSuccess(token, user);
       } else {
-        const response = await api.post('/auth/login', { username, password });
-        onLoginSuccess(response.data.token, response.data.user);
+        const response = await api.post('/auth/login', { username: username.trim(), password });
+        const user = response.data.user || response.data;
+        const token = response.data.token;
+        onLoginSuccess(token, user);
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || 'დაფიქსირდა შეცდომა. სცადეთ მოგვიანებით.');
+      console.error('Registration/Login error:', err);
+      const serverMessage =
+        err.response?.data?.error ||
+        err.response?.data?.message ||
+        (err instanceof Error ? err.message : null);
+      setError(serverMessage || 'რეგისტრაცია ვერ განხორციელდა. გთხოვთ სცადოთ ხელახლა.');
     } finally {
       setLoading(false);
     }
@@ -55,21 +91,39 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
 
       <form onSubmit={handleSubmit} className="space-y-4">
         {isRegister && (
-          <div className="space-y-1">
-            <label className="block text-xs font-label-md text-tertiary">სრული სახელი</label>
-            <div className="relative">
-              <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-text-muted">
-                <User size={16} />
-              </span>
-              <input
-                type="text"
-                className="w-full bg-surface-container-low border border-outline/20 rounded-xl pl-10 pr-4 py-2.5 text-sm text-text-main placeholder-text-muted focus:ring-1 focus:ring-tertiary focus:outline-none"
-                placeholder="სახელი გვარი"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-              />
+          <>
+            <div className="space-y-1">
+              <label className="block text-xs font-label-md text-tertiary">სრული სახელი</label>
+              <div className="relative">
+                <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-text-muted">
+                  <User size={16} />
+                </span>
+                <input
+                  type="text"
+                  className="w-full bg-surface-container-low border border-outline/20 rounded-xl pl-10 pr-4 py-2.5 text-sm text-text-main placeholder-text-muted focus:ring-1 focus:ring-tertiary focus:outline-none"
+                  placeholder="სახელი გვარი"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                />
+              </div>
             </div>
-          </div>
+
+            <div className="space-y-1">
+              <label className="block text-xs font-label-md text-tertiary">ელ-ფოსტა</label>
+              <div className="relative">
+                <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-text-muted">
+                  <Mail size={16} />
+                </span>
+                <input
+                  type="email"
+                  className="w-full bg-surface-container-low border border-outline/20 rounded-xl pl-10 pr-4 py-2.5 text-sm text-text-main placeholder-text-muted focus:ring-1 focus:ring-tertiary focus:outline-none"
+                  placeholder="example@domain.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </div>
+            </div>
+          </>
         )}
 
         <div className="space-y-1">
@@ -103,6 +157,24 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
             />
           </div>
         </div>
+
+        {isRegister && (
+          <div className="space-y-1">
+            <label className="block text-xs font-label-md text-tertiary">გაამეორეთ პაროლი</label>
+            <div className="relative">
+              <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-text-muted">
+                <Key size={16} />
+              </span>
+              <input
+                type="password"
+                className="w-full bg-surface-container-low border border-outline/20 rounded-xl pl-10 pr-4 py-2.5 text-sm text-text-main placeholder-text-muted focus:ring-1 focus:ring-tertiary focus:outline-none"
+                placeholder="••••••••"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+              />
+            </div>
+          </div>
+        )}
 
         {error && <p className="text-xs text-error font-bold text-center mt-2">{error}</p>}
 
