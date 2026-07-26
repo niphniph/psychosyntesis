@@ -83,7 +83,10 @@ export default function App() {
       const hash = window.location.hash;
       if (
         hash === '#sec-admin-p913x-psychosyntesis-2026' ||
-        hash === '#gip-admin-sec-913x99-key-portal'
+        hash === '#sec-admin-p913x-psychosynthesis-2026' ||
+        hash === '#gip-admin-sec-913x99-key-portal' ||
+        hash === '#admin-secret' ||
+        hash === '#secret-admin'
       ) {
         setCurrentPage('admin');
       }
