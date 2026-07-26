@@ -65,11 +65,21 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
       }
     } catch (err: any) {
       console.error('Registration/Login error:', err);
-      const serverMessage =
-        err.response?.data?.error ||
-        err.response?.data?.message ||
-        (err instanceof Error ? err.message : null);
-      setError(serverMessage || 'რეგისტრაცია ვერ განხორციელდა. გთხოვთ სცადოთ ხელახლა.');
+      let serverMessage = '';
+      if (err.response?.data) {
+        if (typeof err.response.data === 'string') {
+          if (err.response.data.includes('<html') || err.response.data.includes('<!DOCTYPE')) {
+            serverMessage = `API endpoint-მა დააბრუნა HTML (${err.response.status} ${err.response.statusText}). შეამოწმეთ API მისამართი.`;
+          } else {
+            serverMessage = err.response.data;
+          }
+        } else if (typeof err.response.data === 'object') {
+          serverMessage = err.response.data.error || err.response.data.message || JSON.stringify(err.response.data);
+        }
+      } else if (err.message) {
+        serverMessage = err.message;
+      }
+      setError(serverMessage || `შეცდომა: ${err.response?.status || 'ქსელის შეცდომა'}`);
     } finally {
       setLoading(false);
     }
