@@ -1,14 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { Home } from './pages/Home';
 import { Dashboard } from './pages/Dashboard';
 import { PracticeRoom } from './pages/PracticeRoom';
 import { AcademicLibrary } from './pages/AcademicLibrary';
 import { Login } from './pages/Login';
-import { AdminDashboard } from './pages/AdminDashboard';
 import { Founder } from './pages/Founder';
 import { Events } from './pages/Events';
 import api from './api';
 import { User, Shield, Lock, ArrowLeft } from 'lucide-react';
+
+const AdminDashboard = lazy(() => import('./pages/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState<string>('home');
@@ -77,23 +78,31 @@ export default function App() {
     }
   }, [token]);
 
-  // Check URL hash for unbreakable secret admin access link
+  // Dedicated admin route listener (/admin, /adminpanel, or #admin)
   useEffect(() => {
     const checkAdminRoute = () => {
+      const path = window.location.pathname;
       const hash = window.location.hash;
       if (
+        path.endsWith('/admin') ||
+        path.endsWith('/adminpanel') ||
+        hash === '#admin' ||
+        hash === '#adminpanel' ||
         hash === '#sec-admin-p913x-psychosyntesis-2026' ||
         hash === '#sec-admin-p913x-psychosynthesis-2026' ||
         hash === '#gip-admin-sec-913x99-key-portal' ||
-        hash === '#admin-secret' ||
-        hash === '#secret-admin'
+        hash === '#admin-secret'
       ) {
         setCurrentPage('admin');
       }
     };
     checkAdminRoute();
     window.addEventListener('hashchange', checkAdminRoute);
-    return () => window.removeEventListener('hashchange', checkAdminRoute);
+    window.addEventListener('popstate', checkAdminRoute);
+    return () => {
+      window.removeEventListener('hashchange', checkAdminRoute);
+      window.removeEventListener('popstate', checkAdminRoute);
+    };
   }, []);
 
   const fetchUserProfile = async () => {
@@ -181,7 +190,11 @@ export default function App() {
   // Render Admin Panel if authenticated as admin; else render Secret Admin Login Portal
   if (currentPage === 'admin') {
     if (currentUser && currentUser.role === 'admin') {
-      return <AdminDashboard onLogout={handleLogout} onNavigateHome={() => navigateTo('home')} />;
+      return (
+        <Suspense fallback={<div className="min-h-screen bg-[#00241a] text-[#c7a85b] flex items-center justify-center font-bold text-sm">იტვირთება ადმინისტრატორის პანელი...</div>}>
+          <AdminDashboard onLogout={handleLogout} onNavigateHome={() => navigateTo('home')} />
+        </Suspense>
+      );
     }
 
     return (
