@@ -77,18 +77,13 @@ export default function App() {
     }
   }, [token]);
 
-  // Check URL hash/path for unbreakable admin secret access link
+  // Check URL hash for unbreakable secret admin access link
   useEffect(() => {
     const checkAdminRoute = () => {
       const hash = window.location.hash;
-      const path = window.location.pathname;
-      const search = window.location.search;
       if (
-        hash === '#gip-admin-access-913' || 
-        hash === '#admin-secret-portal' || 
-        hash === '#admin' || 
-        path === '/admin' || 
-        search.includes('admin')
+        hash === '#sec-admin-p913x-psychosyntesis-2026' ||
+        hash === '#gip-admin-sec-913x99-key-portal'
       ) {
         setCurrentPage('admin');
       }
@@ -156,7 +151,7 @@ export default function App() {
     setToken(null);
     setCurrentUser(null);
     setCurrentPage('home');
-    if (window.location.hash === '#admin') {
+    if (window.location.hash.includes('admin')) {
       window.location.hash = '';
     }
   };
