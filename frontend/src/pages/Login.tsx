@@ -73,13 +73,18 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
           } else {
             serverMessage = err.response.data;
           }
-        } else if (typeof err.response.data === 'object') {
-          serverMessage = err.response.data.error || err.response.data.message || JSON.stringify(err.response.data);
+        } else if (typeof err.response.data === 'object' && err.response.data !== null) {
+          const raw = err.response.data.error ?? err.response.data.message ?? err.response.data;
+          if (typeof raw === 'string') {
+            serverMessage = raw;
+          } else if (typeof raw === 'object' && raw !== null) {
+            serverMessage = typeof raw.message === 'string' ? raw.message : typeof raw.error === 'string' ? raw.error : JSON.stringify(raw);
+          }
         }
-      } else if (err.message) {
+      } else if (typeof err.message === 'string') {
         serverMessage = err.message;
       }
-      setError(serverMessage || `შეცდომა: ${err.response?.status || 'ქსელის შეცდომა'}`);
+      setError(typeof serverMessage === 'string' && serverMessage ? serverMessage : `შეცდომა: ${err.response?.status || 'ქსელის შეცდომა'}`);
     } finally {
       setLoading(false);
     }
