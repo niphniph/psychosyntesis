@@ -174,7 +174,9 @@ app.post('/api/auth/register', async (req: express.Request, res: Response) => {
     }
 
     const db = await Database.read();
-    const userExists = db.users.find(u => u.username.toLowerCase() === finalUsername.toLowerCase());
+    if (!db.users) db.users = [];
+
+    const userExists = db.users.find(u => u.username && u.username.toLowerCase() === finalUsername.toLowerCase());
     if (userExists) {
       return res.status(409).json({ error: 'ეს მომხმარებლის სახელი ან ელ-ფოსტა უკვე დაკავებულია', message: 'ეს მომხმარებლის სახელი ან ელ-ფოსტა უკვე დაკავებულია' });
     }
@@ -218,7 +220,9 @@ app.post('/api/auth/login', async (req: express.Request, res: Response) => {
     }
 
     const db = await Database.read();
-    const user = db.users.find(u => u.username.toLowerCase() === username.toLowerCase());
+    if (!db.users) db.users = [];
+
+    const user = db.users.find(u => u.username && u.username.toLowerCase() === username.toLowerCase());
     if (!user) {
       return res.status(400).json({ message: 'არასწორი მომხმარებლის სახელი ან პაროლი' });
     }

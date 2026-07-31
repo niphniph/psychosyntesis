@@ -352,10 +352,10 @@ export class Database {
       
       // Upgrade database schema dynamically if older keys are missing
       let upgraded = false;
-      const keys = ['courses', 'resources', 'blogs', 'registrations', 'events', 'inquiries', 'seoSettings', 'siteSettings'] as const;
+      const keys = ['users', 'subpersonalities', 'meditationLogs', 'journalEntries', 'courses', 'resources', 'blogs', 'registrations', 'events', 'inquiries', 'seoSettings', 'siteSettings'] as const;
       for (const key of keys) {
         if (!data[key]) {
-          (data as any)[key] = initialDb[key];
+          (data as any)[key] = initialDb[key] || [];
           upgraded = true;
         }
       }

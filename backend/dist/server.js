@@ -150,39 +150,48 @@ app.post('/api/inquiries', async (req, res) => {
 // --- AUTHENTICATION ROUTES ---
 app.post('/api/auth/register', async (req, res) => {
     try {
-        const { username, password, name } = req.body;
-        if (!username || !password || !name) {
-            return res.status(400).json({ message: 'ყველა ველი სავალდებულოა' });
+        const { username, email, password, name } = req.body;
+        const finalUsername = (username || email || '').trim();
+        const cleanEmail = (email || username || '').trim().toLowerCase();
+        if (!finalUsername || !password || !name) {
+            return res.status(400).json({ error: 'ყველა ველი სავალდებულოა', message: 'ყველა ველი სავალდებულოა' });
+        }
+        if (password.length < 6) {
+            return res.status(400).json({ error: 'პაროლი უნდა იყოს მინიმუმ 6 სიმბოლო', message: 'პაროლი უნდა იყოს მინიმუმ 6 სიმბოლო' });
         }
         const db = await Database.read();
-        const userExists = db.users.find(u => u.username.toLowerCase() === username.toLowerCase());
+        if (!db.users)
+            db.users = [];
+        const userExists = db.users.find(u => u.username && u.username.toLowerCase() === finalUsername.toLowerCase());
         if (userExists) {
-            return res.status(400).json({ message: 'ეს მომხმარებლის სახელი უკვე დაკავებულია' });
+            return res.status(409).json({ error: 'ეს მომხმარებლის სახელი ან ელ-ფოსტა უკვე დაკავებულია', message: 'ეს მომხმარებლის სახელი ან ელ-ფოსტა უკვე დაკავებულია' });
         }
         const salt = await bcrypt.genSalt(10);
         const passwordHash = await bcrypt.hash(password, salt);
         const newUser = {
             id: generateId(),
-            username,
+            username: finalUsername,
             passwordHash,
-            name,
+            name: name.trim(),
             role: 'user'
         };
         db.users.push(newUser);
         await Database.write(db);
         const token = jwt.sign({ userId: newUser.id }, JWT_SECRET, { expiresIn: '7d' });
         res.status(201).json({
+            success: true,
             token,
             user: {
                 id: newUser.id,
                 username: newUser.username,
+                email: cleanEmail,
                 name: newUser.name,
                 role: newUser.role
             }
         });
     }
     catch (error) {
-        res.status(500).json({ message: 'სერვერის შეცდომა რეგისტრაციისას' });
+        res.status(500).json({ error: 'სერვერის შეცდომა რეგისტრაციისას', message: 'სერვერის შეცდომა რეგისტრაციისას' });
     }
 });
 app.post('/api/auth/login', async (req, res) => {
@@ -192,7 +201,9 @@ app.post('/api/auth/login', async (req, res) => {
             return res.status(400).json({ message: 'მომხმარებლის სახელი და პაროლი აუცილებელია' });
         }
         const db = await Database.read();
-        const user = db.users.find(u => u.username.toLowerCase() === username.toLowerCase());
+        if (!db.users)
+            db.users = [];
+        const user = db.users.find(u => u.username && u.username.toLowerCase() === username.toLowerCase());
         if (!user) {
             return res.status(400).json({ message: 'არასწორი მომხმარებლის სახელი ან პაროლი' });
         }

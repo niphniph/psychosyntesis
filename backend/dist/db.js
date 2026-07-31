@@ -189,10 +189,10 @@ export class Database {
             const data = JSON.parse(content);
             // Upgrade database schema dynamically if older keys are missing
             let upgraded = false;
-            const keys = ['courses', 'resources', 'blogs', 'registrations', 'events', 'inquiries', 'seoSettings', 'siteSettings'];
+            const keys = ['users', 'subpersonalities', 'meditationLogs', 'journalEntries', 'courses', 'resources', 'blogs', 'registrations', 'events', 'inquiries', 'seoSettings', 'siteSettings'];
             for (const key of keys) {
                 if (!data[key]) {
-                    data[key] = initialDb[key];
+                    data[key] = initialDb[key] || [];
                     upgraded = true;
                 }
             }
