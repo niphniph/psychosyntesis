@@ -3,7 +3,7 @@
     {
       "id": "admin-user-id",
       "username": "admin",
-      "passwordHash": "$2a$10$m1ITcTcKUZd85m6lGj36jeY.SLeqw5xqRAnzxeHMmeQhfNkbRKQD6",
+      "passwordHash": "$2a$10$KdG62EsMNNfvl6xl93krlO.QPsgENOWeNFYGi1EmqwH1hTvSEmam6",
       "name": "გიორგი (ადმინისტრატორი)",
       "role": "admin"
     },
@@ -17,14 +17,14 @@
     {
       "id": "admin-2-id",
       "username": "admin2",
-      "passwordHash": "$2a$10$ZNIgTC8ldCWowm6ATWeusOGjrqUssnIr5YFwVLkLHtUH7Oeow0Gam",
+      "passwordHash": "$2a$10$KdG62EsMNNfvl6xl93krlO.QPsgENOWeNFYGi1EmqwH1hTvSEmam6",
       "name": "Dr. K. Abashidze (Senior Editor)",
       "role": "admin"
     },
     {
       "id": "admin-3-id",
       "username": "admin3",
-      "passwordHash": "$2a$10$idDvd9y5KBFTqfpXaXZrmO8JQW8vbRP5WFXq6qRBNVAJerSawodY.",
+      "passwordHash": "$2a$10$KdG62EsMNNfvl6xl93krlO.QPsgENOWeNFYGi1EmqwH1hTvSEmam6",
       "name": "Nino Kapanadze (Project Director)",
       "role": "admin"
     }

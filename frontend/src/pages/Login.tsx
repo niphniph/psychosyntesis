@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import api from '../api';
+import { getErrorMessage } from '../utils/getErrorMessage';
 import { Shield, Key, Mail, User } from 'lucide-react';
 
 interface LoginProps {
@@ -16,17 +17,31 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const toggleMode = () => {
+    setIsRegister(prev => !prev);
+    setError('');
+    setPassword('');
+    setConfirmPassword('');
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (loading) return;
+
     if (isRegister) {
-      if (!username || !email || !password || !name) {
+      if (!name.trim() || (!email.trim() && !username.trim()) || !password) {
         setError('გთხოვთ შეავსოთ ყველა აუცილებელი ველი');
         return;
       }
+      const rawEmail = (email || username).trim();
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(email.trim())) {
+      if (!emailRegex.test(rawEmail)) {
         setError('გთხოვთ მიუთითოთ სწორი ელ-ფოსტის მისამართი');
+        return;
+      }
+      if (password.length < 6) {
+        setError('პაროლი უნდა იყოს მინიმუმ 6 სიმბოლო');
         return;
       }
       if (confirmPassword && password !== confirmPassword) {
@@ -34,8 +49,8 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
         return;
       }
     } else {
-      if (!username || !password) {
-        setError('გთხოვთ შეავსოთ მომხმარებლის სახელი და პაროლი');
+      if ((!username.trim() && !email.trim()) || !password) {
+        setError('გთხოვთ შეავსოთ ელ-ფოსტა / მომხმარებლის სახელი და პაროლი');
         return;
       }
     }
@@ -45,46 +60,42 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
 
     try {
       if (isRegister) {
-        const cleanEmail = email.trim().toLowerCase();
+        const cleanEmail = (email || username).trim().toLowerCase();
+        const cleanUsername = (username || email).trim();
         const payload = {
-          username: username.trim(),
-          email: cleanEmail,
           name: name.trim(),
+          username: cleanUsername,
+          email: cleanEmail,
           password,
           confirmPassword: confirmPassword || password
         };
-        const response = await api.post('/auth/register', payload);
+        const response = await api.post('/auth/register', payload, {
+          headers: { 'Content-Type': 'application/json' }
+        });
         const user = response.data.user || response.data;
         const token = response.data.token || 'session-active';
         onLoginSuccess(token, user);
       } else {
-        const response = await api.post('/auth/login', { username: username.trim(), password });
+        const identifier = (email || username).trim().toLowerCase();
+        const payload = {
+          email: identifier,
+          username: identifier,
+          password
+        };
+        const response = await api.post('/auth/login', payload, {
+          headers: { 'Content-Type': 'application/json' }
+        });
         const user = response.data.user || response.data;
         const token = response.data.token;
         onLoginSuccess(token, user);
       }
     } catch (err: any) {
-      console.error('Registration/Login error:', err);
-      let serverMessage = '';
-      if (err.response?.data) {
-        if (typeof err.response.data === 'string') {
-          if (err.response.data.includes('<html') || err.response.data.includes('<!DOCTYPE')) {
-            serverMessage = `API endpoint-მა დააბრუნა HTML (${err.response.status} ${err.response.statusText}). შეამოწმეთ API მისამართი.`;
-          } else {
-            serverMessage = err.response.data;
-          }
-        } else if (typeof err.response.data === 'object' && err.response.data !== null) {
-          const raw = err.response.data.error ?? err.response.data.message ?? err.response.data;
-          if (typeof raw === 'string') {
-            serverMessage = raw;
-          } else if (typeof raw === 'object' && raw !== null) {
-            serverMessage = typeof raw.message === 'string' ? raw.message : typeof raw.error === 'string' ? raw.error : JSON.stringify(raw);
-          }
-        }
-      } else if (typeof err.message === 'string') {
-        serverMessage = err.message;
-      }
-      setError(typeof serverMessage === 'string' && serverMessage ? serverMessage : `შეცდომა: ${err.response?.status || 'ქსელის შეცდომა'}`);
+      console.error('Authentication request failed:', {
+        status: err?.response?.status,
+        data: err?.response?.data,
+        message: err?.message
+      });
+      setError(getErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -142,7 +153,9 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
         )}
 
         <div className="space-y-1">
-          <label className="block text-xs font-label-md text-tertiary">მომხმარებლის სახელი</label>
+          <label className="block text-xs font-label-md text-tertiary">
+            {isRegister ? 'მომხმარებლის სახელი (არასავალდებულო)' : 'ელ-ფოსტა / მომხმარებლის სახელი'}
+          </label>
           <div className="relative">
             <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-text-muted">
               <Mail size={16} />
@@ -150,7 +163,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
             <input
               type="text"
               className="w-full bg-surface-container-low border border-outline/20 rounded-xl pl-10 pr-4 py-2.5 text-sm text-text-main placeholder-text-muted focus:ring-1 focus:ring-tertiary focus:outline-none"
-              placeholder="username"
+              placeholder={isRegister ? "username" : "example@domain.com"}
               value={username}
               onChange={(e) => setUsername(e.target.value)}
             />
@@ -191,7 +204,22 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
           </div>
         )}
 
-        {error && <p className="text-xs text-error font-bold text-center mt-2">{error}</p>}
+        {error && (
+          <div className="space-y-2 text-center mt-2 p-3 bg-error/10 border border-error/20 rounded-xl">
+            <p className="text-xs text-error font-bold">
+              {typeof error === "string" ? error : (error as any)?.message || "An unexpected error occurred."}
+            </p>
+            {(error.includes("already exists") || error.includes("უკვე დაკავებულია") || error.includes("უკვე რეგისტრირებულია")) && (
+              <button
+                type="button"
+                onClick={toggleMode}
+                className="text-xs text-tertiary underline underline-offset-2 cursor-pointer font-bold hover:brightness-110"
+              >
+                გსურთ ავტორიზაცია? დააჭირეთ აქ შესასვლელად
+              </button>
+            )}
+          </div>
+        )}
 
         <button
           type="submit"
@@ -204,10 +232,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
 
       <div className="text-center pt-2">
         <button
-          onClick={() => {
-            setIsRegister(!isRegister);
-            setError('');
-          }}
+          onClick={toggleMode}
           className="text-xs text-text-muted hover:text-tertiary transition-all cursor-pointer underline underline-offset-4"
         >
           {isRegister ? 'უკვე გაქვთ ანგარიში? ავტორიზაცია' : 'არ გაქვთ ანგარიში? დარეგისტრირდით'}

@@ -32,7 +32,7 @@ const requireAdmin = async (req: AuthenticatedRequest, res: Response, next: Next
   }
 };
 
-// Seed 3 administrator accounts if they don't exist
+// Seed 3 administrator accounts if they don't exist or ensure credentials
 const seedAdmin = async () => {
   try {
     const db = await Database.read();
@@ -44,10 +44,11 @@ const seedAdmin = async () => {
 
     let modified = false;
     for (const a of adminsToSeed) {
-      const exists = db.users.find(u => u.username.toLowerCase() === a.username.toLowerCase());
+      const exists = db.users.find(u => u.username && u.username.toLowerCase() === a.username.toLowerCase());
+      const salt = await bcrypt.genSalt(10);
+      const passwordHash = await bcrypt.hash('admin123', salt);
+
       if (!exists) {
-        const salt = await bcrypt.genSalt(10);
-        const passwordHash = await bcrypt.hash('admin123', salt);
         db.users.push({
           id: a.id,
           username: a.username,
@@ -56,9 +57,13 @@ const seedAdmin = async () => {
           role: 'admin'
         });
         modified = true;
-      } else if (exists.role !== 'admin') {
-        exists.role = 'admin';
-        modified = true;
+      } else {
+        const isMatch = await bcrypt.compare('admin123', exists.passwordHash || '');
+        if (!isMatch || exists.role !== 'admin') {
+          exists.role = 'admin';
+          exists.passwordHash = passwordHash;
+          modified = true;
+        }
       }
     }
 
@@ -162,23 +167,32 @@ app.post('/api/inquiries', async (req, res) => {
 app.post('/api/auth/register', async (req: express.Request, res: Response) => {
   try {
     const { username, email, password, name } = req.body;
-    const finalUsername = (username || email || '').trim();
     const cleanEmail = (email || username || '').trim().toLowerCase();
+    const cleanName = (name || username || '').trim();
 
-    if (!finalUsername || !password || !name) {
-      return res.status(400).json({ error: 'ყველა ველი სავალდებულოა', message: 'ყველა ველი სავალდებულოა' });
+    if (!cleanEmail || !password || !cleanName) {
+      return res.status(400).json({
+        code: 'VALIDATION_ERROR',
+        message: 'Email, password, and name are required.'
+      });
     }
 
     if (password.length < 6) {
-      return res.status(400).json({ error: 'პაროლი უნდა იყოს მინიმუმ 6 სიმბოლო', message: 'პაროლი უნდა იყოს მინიმუმ 6 სიმბოლო' });
+      return res.status(400).json({
+        code: 'VALIDATION_ERROR',
+        message: 'Password must be at least 6 characters.'
+      });
     }
 
     const db = await Database.read();
     if (!db.users) db.users = [];
 
-    const userExists = db.users.find(u => u.username && u.username.toLowerCase() === finalUsername.toLowerCase());
+    const userExists = db.users.find(u => (u.username && u.username.toLowerCase() === cleanEmail) || (u.email && u.email.toLowerCase() === cleanEmail));
     if (userExists) {
-      return res.status(409).json({ error: 'ეს მომხმარებლის სახელი ან ელ-ფოსტა უკვე დაკავებულია', message: 'ეს მომხმარებლის სახელი ან ელ-ფოსტა უკვე დაკავებულია' });
+      return res.status(409).json({
+        code: 'USER_ALREADY_EXISTS',
+        message: 'An account with this email already exists.'
+      });
     }
 
     const salt = await bcrypt.genSalt(10);
@@ -186,9 +200,10 @@ app.post('/api/auth/register', async (req: express.Request, res: Response) => {
 
     const newUser: User = {
       id: generateId(),
-      username: finalUsername,
+      username: cleanEmail,
+      email: cleanEmail,
       passwordHash,
-      name: name.trim(),
+      name: cleanName,
       role: 'user'
     };
 
@@ -208,42 +223,65 @@ app.post('/api/auth/register', async (req: express.Request, res: Response) => {
       }
     });
   } catch (error) {
-    res.status(500).json({ error: 'სერვერის შეცდომა რეგისტრაციისას', message: 'სერვერის შეცდომა რეგისტრაციისას' });
+    res.status(500).json({
+      code: 'INTERNAL_ERROR',
+      message: 'The request could not be completed.'
+    });
   }
 });
 
 app.post('/api/auth/login', async (req: express.Request, res: Response) => {
   try {
-    const { username, password } = req.body;
-    if (!username || !password) {
-      return res.status(400).json({ message: 'მომხმარებლის სახელი და პაროლი აუცილებელია' });
+    const { username, email, password } = req.body;
+    const cleanEmail = (email || username || '').trim().toLowerCase();
+
+    if (!cleanEmail || !password) {
+      return res.status(400).json({
+        code: 'VALIDATION_ERROR',
+        message: 'Email and password are required.'
+      });
     }
 
     const db = await Database.read();
     if (!db.users) db.users = [];
 
-    const user = db.users.find(u => u.username && u.username.toLowerCase() === username.toLowerCase());
+    const user = db.users.find(u => 
+      (u.username && u.username.toLowerCase() === cleanEmail) || 
+      (u.email && u.email.toLowerCase() === cleanEmail)
+    );
+
     if (!user) {
-      return res.status(400).json({ message: 'არასწორი მომხმარებლის სახელი ან პაროლი' });
+      return res.status(401).json({
+        code: 'INVALID_CREDENTIALS',
+        message: 'The email or password is incorrect.'
+      });
     }
 
     const isMatch = await bcrypt.compare(password, user.passwordHash);
     if (!isMatch) {
-      return res.status(400).json({ message: 'არასწორი მომხმარებლის სახელი ან პაროლი' });
+      return res.status(401).json({
+        code: 'INVALID_CREDENTIALS',
+        message: 'The email or password is incorrect.'
+      });
     }
 
     const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '7d' });
     res.json({
+      success: true,
       token,
       user: {
         id: user.id,
         username: user.username,
+        email: user.email || user.username,
         name: user.name,
         role: user.role || 'user'
       }
     });
   } catch (error) {
-    res.status(500).json({ message: 'სერვერის შეცდომა ავტორიზაციისას' });
+    res.status(500).json({
+      code: 'INTERNAL_ERROR',
+      message: 'The request could not be completed.'
+    });
   }
 });
 

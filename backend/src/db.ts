@@ -10,6 +10,7 @@ const DB_PATH = path.join(__dirname, '..', 'data', 'db.json');
 export interface User {
   id: string;
   username: string;
+  email?: string;
   passwordHash: string;
   name: string;
   role?: 'admin' | 'user';
