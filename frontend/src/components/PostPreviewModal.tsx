@@ -29,7 +29,7 @@ export const PostPreviewModal: React.FC<PostPreviewModalProps> = ({
         {/* Header */}
         <div className="bg-[#0b251c] px-6 py-4 border-b border-[#c7a85b]/20 flex justify-between items-center sticky top-0 z-10">
           <div className="flex items-center gap-2 text-xs text-[#c7a85b] font-bold">
-            <Eye size={16} /> Content Live Preview (Unpublished)
+            <Eye size={16} /> პირდაპირი გადახედვა (გამოუქვეყნებელი)
           </div>
           <button
             onClick={onClose}
@@ -49,11 +49,11 @@ export const PostPreviewModal: React.FC<PostPreviewModalProps> = ({
               </span>
             )}
             <h1 className="text-2xl md:text-4xl font-bold font-display-lg text-white leading-tight">
-              {post.title || 'Untitled Post'}
+              {post.title || 'უსათაურო პოსტი'}
             </h1>
             <div className="flex flex-wrap items-center gap-4 text-xs text-[#a4d0be]/80 pt-1 border-b border-white/10 pb-4">
               <span className="flex items-center gap-1.5">
-                <User size={14} className="text-[#c7a85b]" /> {post.author || 'Dr. Elene Kvantaliani'}
+                <User size={14} className="text-[#c7a85b]" /> {post.author || 'დრ. ელენე ქვანტალიანი'}
               </span>
               <span className="flex items-center gap-1.5">
                 <Calendar size={14} className="text-[#c7a85b]" /> {new Date(post.publishDate || Date.now()).toLocaleDateString()}
@@ -78,7 +78,7 @@ export const PostPreviewModal: React.FC<PostPreviewModalProps> = ({
           {/* Full HTML Content */}
           <div 
             className="prose prose-invert max-w-none text-sm md:text-base text-white/90 leading-relaxed space-y-4 pt-2 [&_h2]:text-xl [&_h2]:font-bold [&_h2]:text-[#c7a85b] [&_h3]:text-lg [&_h3]:font-bold [&_h3]:text-white [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_blockquote]:border-l-4 [&_blockquote]:border-[#c7a85b] [&_blockquote]:pl-4 [&_blockquote]:italic [&_a]:text-[#c7a85b] [&_a]:underline"
-            dangerouslySetInnerHTML={{ __html: post.content || '<p className="opacity-40 italic">No content written yet...</p>' }}
+            dangerouslySetInnerHTML={{ __html: post.content || '<p className="opacity-40 italic">ტექსტი არ არის შეყვანილი...</p>' }}
           />
 
           {/* Tags */}
@@ -100,7 +100,7 @@ export const PostPreviewModal: React.FC<PostPreviewModalProps> = ({
             onClick={onClose}
             className="bg-[#c7a85b] text-[#00241a] font-bold text-xs px-6 py-2 rounded-xl hover:bg-[#ffdf95] transition-all cursor-pointer"
           >
-            Close Preview
+            დახურვა
           </button>
         </div>
       </div>

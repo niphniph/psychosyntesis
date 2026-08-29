@@ -479,15 +479,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
 
   // Navigation Items Sidebar List
   const navTabs = [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'posts', label: 'Posts / Articles', icon: FileText, badge: posts.length },
-    { id: 'pages', label: 'Pages', icon: Layers, badge: pages.length },
-    { id: 'homepage', label: 'Homepage Editor', icon: HomeIcon },
-    { id: 'navigation', label: 'Navigation', icon: MenuIcon },
-    { id: 'media', label: 'Media Library', icon: ImageIcon, badge: mediaList.length },
-    { id: 'users', label: 'User Manager', icon: Users, badge: users.length },
-    { id: 'settings', label: 'Settings', icon: SettingsIcon },
-    { id: 'activity', label: 'Activity Log', icon: History }
+    { id: 'dashboard', label: 'მთავარი პანელი', icon: LayoutDashboard },
+    { id: 'posts', label: 'სტატიები / პოსტები', icon: FileText, badge: posts.length },
+    { id: 'pages', label: 'გვერდები', icon: Layers, badge: pages.length },
+    { id: 'homepage', label: 'მთავარი გვერდის რედაქტორი', icon: HomeIcon },
+    { id: 'navigation', label: 'ნავიგაციის მენიუ', icon: MenuIcon },
+    { id: 'media', label: 'მედია ბიბლიოთეკა', icon: ImageIcon, badge: mediaList.length },
+    { id: 'users', label: 'მომხმარებლები', icon: Users, badge: users.length },
+    { id: 'settings', label: 'პარამეტრები', icon: SettingsIcon },
+    { id: 'activity', label: 'მოქმედებების ჟურნალი', icon: History }
   ];
 
   return (
@@ -514,8 +514,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
               <ShieldCheck size={20} />
             </div>
             <div>
-              <h1 className="text-base font-bold font-display-lg text-white leading-none">Psychosynthesis Admin</h1>
-              <span className="text-[10px] text-[#a4d0be]/70 font-mono">Private Server Session Active</span>
+              <h1 className="text-base font-bold font-display-lg text-white leading-none">ფსიქოსინთეზის ადმინისტრაცია</h1>
+              <span className="text-[10px] text-[#a4d0be]/70 font-mono">დაცული სესიის სტატუსი: აქტიური</span>
             </div>
           </div>
         </div>
@@ -525,14 +525,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
             onClick={onNavigateHome}
             className="hidden sm:flex items-center gap-1.5 text-xs text-[#a4d0be] hover:text-[#c7a85b] bg-[#00241a] border border-[#c7a85b]/30 px-3.5 py-1.5 rounded-xl transition-all cursor-pointer font-bold"
           >
-            <Globe size={14} /> View Website
+            <Globe size={14} /> საიტზე გადასვლა
           </button>
 
           <button
             onClick={onLogout}
             className="flex items-center gap-1.5 text-xs bg-red-950/60 text-red-300 hover:bg-red-900/80 border border-red-800/40 px-3.5 py-1.5 rounded-xl transition-all cursor-pointer font-bold"
           >
-            <LogOut size={14} /> Logout
+            <LogOut size={14} /> გამოსვლა
           </button>
         </div>
       </header>
@@ -545,7 +545,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
         }`}>
           <div className="p-4 space-y-1.5 overflow-y-auto">
             <div className="text-[10px] font-bold text-[#c7a85b] uppercase tracking-widest px-3 py-2">
-              CMS Navigation
+              მართვის პანელის ნავიგაცია
             </div>
 
             {navTabs.map((tab) => {
@@ -581,8 +581,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
           </div>
 
           <div className="p-4 border-t border-[#c7a85b]/15 text-center">
-            <p className="text-[10px] text-[#a4d0be]/50">Psychosynthesis CMS v2.5</p>
-            <p className="text-[9px] text-[#c7a85b]/70 mt-0.5">Cloudflare Private Session</p>
+            <p className="text-[10px] text-[#a4d0be]/50">ფსიქოსინთეზის CMS v2.5</p>
+            <p className="text-[9px] text-[#c7a85b]/70 mt-0.5">დაცული სესია</p>
           </div>
         </aside>
 
@@ -592,15 +592,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
           {activeTab === 'dashboard' && (
             <div className="space-y-8 animate-fade-in">
               <div>
-                <h2 className="text-2xl font-bold font-display-lg text-white">Dashboard Overview</h2>
-                <p className="text-xs text-[#a4d0be]">Real-time website content statistics and system status</p>
+                <h2 className="text-2xl font-bold font-display-lg text-white">მთავარი პანელის მიმოხილვა</h2>
+                <p className="text-xs text-[#a4d0be]">ვებ-საიტის კონტენტის სტატისტიკა და სისტემის სტატუსი</p>
               </div>
 
               {/* Stats Cards */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="bg-[#0b251c] border border-[#c7a85b]/30 rounded-2xl p-5 shadow-xl space-y-2">
                   <div className="flex justify-between items-center text-xs text-[#a4d0be]">
-                    <span>Total Users</span>
+                    <span>სულ მომხმარებელი</span>
                     <Users size={16} className="text-[#c7a85b]" />
                   </div>
                   <div className="text-3xl font-bold text-white font-mono">{overview?.totalUsers || users.length}</div>
@@ -608,7 +608,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
 
                 <div className="bg-[#0b251c] border border-[#c7a85b]/30 rounded-2xl p-5 shadow-xl space-y-2">
                   <div className="flex justify-between items-center text-xs text-[#a4d0be]">
-                    <span>Published Posts</span>
+                    <span>გამოქვეყნებული სტატია</span>
                     <FileText size={16} className="text-[#c7a85b]" />
                   </div>
                   <div className="text-3xl font-bold text-[#c7a85b] font-mono">{overview?.publishedPosts || posts.filter(p => p.status === 'published').length}</div>
@@ -616,7 +616,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
 
                 <div className="bg-[#0b251c] border border-[#c7a85b]/30 rounded-2xl p-5 shadow-xl space-y-2">
                   <div className="flex justify-between items-center text-xs text-[#a4d0be]">
-                    <span>Draft Posts</span>
+                    <span>დრაფტი / ჩანაწერი</span>
                     <FileText size={16} className="text-amber-400" />
                   </div>
                   <div className="text-3xl font-bold text-amber-400 font-mono">{overview?.draftPosts || posts.filter(p => p.status === 'draft').length}</div>
@@ -624,7 +624,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
 
                 <div className="bg-[#0b251c] border border-[#c7a85b]/30 rounded-2xl p-5 shadow-xl space-y-2">
                   <div className="flex justify-between items-center text-xs text-[#a4d0be]">
-                    <span>Total Pages</span>
+                    <span>სულ გვერდი</span>
                     <Layers size={16} className="text-[#c7a85b]" />
                   </div>
                   <div className="text-3xl font-bold text-white font-mono">{overview?.totalPages || pages.length}</div>
@@ -635,18 +635,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Left: Quick Actions */}
                 <div className="bg-[#0b251c] border border-[#c7a85b]/20 rounded-3xl p-6 space-y-4 shadow-xl">
-                  <h3 className="text-sm font-bold text-[#c7a85b] uppercase tracking-wider">Quick Actions</h3>
+                  <h3 className="text-sm font-bold text-[#c7a85b] uppercase tracking-wider">სწრაფი მოქმედებები</h3>
                   <div className="space-y-2.5">
                     <button
                       onClick={() => {
-                        setEditingPost({ status: 'draft', visibility: 'public', displayLocations: ['articles'], category: 'Theory' });
+                        setEditingPost({ status: 'draft', visibility: 'public', displayLocations: ['articles'], category: 'თეორია' });
                         setIsPostFormOpen(true);
                         setActiveTab('posts');
                       }}
                       className="w-full bg-[#00241a] hover:bg-[#c7a85b] text-white hover:text-[#00241a] border border-[#c7a85b]/30 p-3.5 rounded-2xl text-xs font-bold transition-all cursor-pointer flex items-center justify-between group"
                     >
                       <span className="flex items-center gap-2">
-                        <Plus size={16} /> Create New Article / Post
+                        <Plus size={16} /> ახალი სტატიის / პოსტის შექმნა
                       </span>
                       <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform" />
                     </button>
@@ -660,7 +660,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
                       className="w-full bg-[#00241a] hover:bg-[#c7a85b] text-white hover:text-[#00241a] border border-[#c7a85b]/30 p-3.5 rounded-2xl text-xs font-bold transition-all cursor-pointer flex items-center justify-between group"
                     >
                       <span className="flex items-center gap-2">
-                        <Layers size={16} /> Add Custom Dynamic Page
+                        <Layers size={16} /> ახალი გვერდის დამატება
                       </span>
                       <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform" />
                     </button>
@@ -670,7 +670,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
                       className="w-full bg-[#00241a] hover:bg-[#c7a85b] text-white hover:text-[#00241a] border border-[#c7a85b]/30 p-3.5 rounded-2xl text-xs font-bold transition-all cursor-pointer flex items-center justify-between group"
                     >
                       <span className="flex items-center gap-2">
-                        <HomeIcon size={16} /> Edit Homepage Layout
+                        <HomeIcon size={16} /> მთავარი გვერდის რედაქტირება
                       </span>
                       <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform" />
                     </button>
@@ -680,13 +680,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
                 {/* Right: Recent Activity Timeline */}
                 <div className="lg:col-span-2 bg-[#0b251c] border border-[#c7a85b]/20 rounded-3xl p-6 space-y-4 shadow-xl">
                   <div className="flex justify-between items-center">
-                    <h3 className="text-sm font-bold text-[#c7a85b] uppercase tracking-wider">Recent Admin Activity</h3>
-                    <button onClick={() => setActiveTab('activity')} className="text-xs text-[#a4d0be] hover:underline">View All</button>
+                    <h3 className="text-sm font-bold text-[#c7a85b] uppercase tracking-wider">ბოლო ადმინისტრაციული მოქმედებები</h3>
+                    <button onClick={() => setActiveTab('activity')} className="text-xs text-[#a4d0be] hover:underline">ყველას ნახვა</button>
                   </div>
 
                   <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2">
                     {activityLogs.length === 0 ? (
-                      <p className="text-xs text-[#a4d0be]/60 italic py-6">No recent admin activity recorded.</p>
+                      <p className="text-xs text-[#a4d0be]/60 italic py-6">ადმინისტრაციული მოქმედებები არ არის ჩაწერილი.</p>
                     ) : (
                       activityLogs.slice(0, 6).map((log) => (
                         <div key={log.id} className="bg-[#00241a] p-3.5 rounded-2xl border border-white/5 flex items-center justify-between text-xs">
@@ -711,8 +711,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
             <div className="space-y-6 animate-fade-in">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                  <h2 className="text-2xl font-bold font-display-lg text-white">Posts & Articles Manager</h2>
-                  <p className="text-xs text-[#a4d0be]">Create, edit, preview, and control where content appears on the site</p>
+                  <h2 className="text-2xl font-bold font-display-lg text-white">სტატიებისა და პოსტების მართვა</h2>
+                  <p className="text-xs text-[#a4d0be]">შექმენით, დაარედაქტირეთ და აკონტროლეთ კონტენტის გამოჩენის ადგილები</p>
                 </div>
 
                 <button
@@ -721,14 +721,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
                       status: 'draft', 
                       visibility: 'public', 
                       displayLocations: ['articles'], 
-                      category: 'Theory',
-                      author: 'Dr. Elene Kvantaliani'
+                      category: 'თეორია',
+                      author: 'დრ. ელენე ქვანტალიანი'
                     });
                     setIsPostFormOpen(true);
                   }}
                   className="bg-[#c7a85b] hover:bg-[#ffdf95] text-[#00241a] font-bold text-xs px-5 py-3 rounded-2xl transition-all cursor-pointer flex items-center gap-2 shadow-lg"
                 >
-                  <Plus size={16} /> Create New Post
+                  <Plus size={16} /> ახალი პოსტის შექმნა
                 </button>
               </div>
 
@@ -738,7 +738,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
                   <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40" />
                   <input
                     type="text"
-                    placeholder="Search posts by title or tag..."
+                    placeholder="ძებნა სათაურის ან ტეგის მიხედვით..."
                     value={postSearch}
                     onChange={(e) => setPostSearch(e.target.value)}
                     className="w-full bg-[#00241a] border border-[#c7a85b]/30 rounded-xl pl-9 pr-4 py-2 text-xs text-white placeholder-white/40 focus:outline-none focus:border-[#c7a85b]"
@@ -751,10 +751,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
                     onChange={(e) => setPostCategoryFilter(e.target.value)}
                     className="bg-[#00241a] border border-[#c7a85b]/30 text-white rounded-xl px-3 py-2 text-xs focus:outline-none"
                   >
-                    <option value="all">All Categories</option>
-                    <option value="Theory">Theory</option>
-                    <option value="Practice">Practice</option>
-                    <option value="Research">Research</option>
+                    <option value="all">ყველა კატეგორია</option>
+                    <option value="Theory">თეორია</option>
+                    <option value="Practice">პრაქტიკა</option>
+                    <option value="Research">კვლევა</option>
                   </select>
                 </div>
               </div>
@@ -765,12 +765,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
                   <table className="w-full text-left text-xs text-white">
                     <thead className="bg-[#00241a] text-[#c7a85b] border-b border-[#c7a85b]/20 font-bold uppercase tracking-wider">
                       <tr>
-                        <th className="p-4">Order</th>
-                        <th className="p-4">Title & Slug</th>
-                        <th className="p-4">Status</th>
-                        <th className="p-4">Display Locations</th>
-                        <th className="p-4">Date</th>
-                        <th className="p-4 text-right">Actions</th>
+                        <th className="p-4">რიგი</th>
+                        <th className="p-4">სათაური და ბმული</th>
+                        <th className="p-4">სტატუსი</th>
+                        <th className="p-4">გამოჩენის ადგილები</th>
+                        <th className="p-4">თარიღი</th>
+                        <th className="p-4 text-right">მოქმედებები</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-white/5">
@@ -794,7 +794,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
                                 post.status === 'draft' ? 'bg-amber-950 text-amber-400 border border-amber-800' :
                                 'bg-gray-800 text-gray-400'
                               }`}>
-                                {post.status}
+                                {post.status === 'published' ? 'გამოქვეყნებული' : post.status === 'draft' ? 'დრაფტი' : 'დაფარული'}
                               </span>
                             </td>
                             <td className="p-4">
@@ -813,14 +813,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
                               <div className="flex justify-end gap-2">
                                 <button
                                   onClick={() => setPreviewPost(post)}
-                                  title="Preview Post"
+                                  title="წინასწარი გადახედვა"
                                   className="p-2 bg-[#00241a] text-[#a4d0be] hover:text-white rounded-xl border border-white/10"
                                 >
                                   <Eye size={14} />
                                 </button>
                                 <button
                                   onClick={() => handleDuplicatePost(post.id)}
-                                  title="Duplicate Post"
+                                  title="დუბლირება"
                                   className="p-2 bg-[#00241a] text-[#a4d0be] hover:text-white rounded-xl border border-white/10"
                                 >
                                   <Copy size={14} />
@@ -830,14 +830,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
                                     setEditingPost(post);
                                     setIsPostFormOpen(true);
                                   }}
-                                  title="Edit Post"
+                                  title="რედაქტირება"
                                   className="p-2 bg-[#c7a85b]/20 text-[#c7a85b] hover:bg-[#c7a85b] hover:text-[#00241a] rounded-xl font-bold transition-all"
                                 >
                                   <Edit size={14} />
                                 </button>
                                 <button
                                   onClick={() => handleDeletePost(post.id, post.title)}
-                                  title="Delete Post"
+                                  title="წაშლა"
                                   className="p-2 bg-red-950/60 text-red-400 hover:bg-red-600 hover:text-white rounded-xl transition-all"
                                 >
                                   <Trash2 size={14} />
@@ -860,7 +860,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
                 {/* Drawer Header */}
                 <div className="bg-[#00241a] p-6 border-b border-[#c7a85b]/20 flex justify-between items-center sticky top-0 z-10">
                   <h3 className="text-lg font-bold text-white font-display-lg">
-                    {editingPost.id ? 'Edit Post / Article' : 'Create New Post / Article'}
+                    {editingPost.id ? 'სტატიის რედაქტირება' : 'ახალი სტატიის შექმნა'}
                   </h3>
                   <button
                     type="button"
@@ -879,53 +879,53 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
                   {/* Title & Slug */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-1">
-                      <label className="text-xs font-bold text-[#c7a85b]">Article Title *</label>
+                      <label className="text-xs font-bold text-[#c7a85b]">სტატიის სათაური *</label>
                       <input
                         type="text"
                         required
                         value={editingPost.title || ''}
                         onChange={(e) => setEditingPost(prev => ({ ...prev, title: e.target.value }))}
                         className="w-full bg-[#00241a] border border-[#c7a85b]/30 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#c7a85b]"
-                        placeholder="Understanding the Self..."
+                        placeholder="სტატიის სათაური..."
                       />
                     </div>
 
                     <div className="space-y-1">
-                      <label className="text-xs font-bold text-[#c7a85b]">URL Slug</label>
+                      <label className="text-xs font-bold text-[#c7a85b]">URL ბმული (Slug)</label>
                       <input
                         type="text"
                         value={editingPost.slug || ''}
                         onChange={(e) => setEditingPost(prev => ({ ...prev, slug: e.target.value }))}
                         className="w-full bg-[#00241a] border border-[#c7a85b]/30 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#c7a85b]"
-                        placeholder="understanding-the-self"
+                        placeholder="statia-bmuli"
                       />
                     </div>
                   </div>
 
                   {/* Short Description */}
                   <div className="space-y-1">
-                    <label className="text-xs font-bold text-[#c7a85b]">Short Description / Excerpt</label>
+                    <label className="text-xs font-bold text-[#c7a85b]">მოკლე აღწერა / ანოტაცია</label>
                     <textarea
                       rows={2}
                       value={editingPost.shortDescription || ''}
                       onChange={(e) => setEditingPost(prev => ({ ...prev, shortDescription: e.target.value }))}
                       className="w-full bg-[#00241a] border border-[#c7a85b]/30 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-[#c7a85b]"
-                      placeholder="Brief overview displayed on card previews..."
+                      placeholder="მოკლე მიმოხილვა ბარათებისათვის..."
                     />
                   </div>
 
                   {/* CONTROL WHERE CONTENT APPEARS ("Display On") */}
                   <div className="space-y-2 p-4 bg-[#00241a] rounded-2xl border border-[#c7a85b]/30">
                     <label className="text-xs font-bold text-[#c7a85b] uppercase tracking-wider block">
-                      Display On (Select Placement Locations)
+                      გამოჩენის ადგილები (აირჩიეთ განთავსება)
                     </label>
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-xs">
                       {[
-                        { id: 'homepage_featured', label: 'Homepage -> Featured' },
-                        { id: 'homepage_latest', label: 'Homepage -> Latest Articles' },
-                        { id: 'articles', label: 'Articles Page' },
-                        { id: 'resources', label: 'Resources Page' },
-                        { id: 'custom_page', label: 'Custom Page' }
+                        { id: 'homepage_featured', label: 'მთავარი გვერდი -> რჩეული' },
+                        { id: 'homepage_latest', label: 'მთავარი გვერდი -> ბოლო სტატიები' },
+                        { id: 'articles', label: 'სტატიების გვერდი' },
+                        { id: 'resources', label: 'რესურსების გვერდი' },
+                        { id: 'custom_page', label: 'სპეციალური გვერდი' }
                       ].map((loc) => {
                         const checked = (editingPost.displayLocations || []).includes(loc.id);
                         return (
@@ -951,7 +951,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
 
                   {/* Featured Image & Media Library Selection */}
                   <div className="space-y-1">
-                    <label className="text-xs font-bold text-[#c7a85b]">Featured Image URL</label>
+                    <label className="text-xs font-bold text-[#c7a85b]">მთავარი სურათის URL</label>
                     <div className="flex gap-2">
                       <input
                         type="text"
@@ -968,14 +968,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
                         }}
                         className="bg-[#c7a85b]/20 hover:bg-[#c7a85b] text-[#c7a85b] hover:text-[#00241a] px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shrink-0"
                       >
-                        <ImageIcon size={14} /> Choose Image
+                        <ImageIcon size={14} /> სურათის არჩევა
                       </button>
                     </div>
                   </div>
 
                   {/* WYSIWYG Rich Text Content Editor */}
                   <div className="space-y-1">
-                    <label className="text-xs font-bold text-[#c7a85b]">Full Article Content (WYSIWYG Editor)</label>
+                    <label className="text-xs font-bold text-[#c7a85b]">სრული ტექსტი (რედაქტორი)</label>
                     <RichTextEditor
                       value={editingPost.content || ''}
                       onChange={(val) => setEditingPost(prev => ({ ...prev, content: val }))}
@@ -989,33 +989,33 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
                   {/* Status, Category, Author, SEO */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
                     <div className="space-y-1">
-                      <label className="text-xs font-bold text-[#c7a85b]">Status</label>
+                      <label className="text-xs font-bold text-[#c7a85b]">სტატუსი</label>
                       <select
                         value={editingPost.status || 'draft'}
                         onChange={(e) => setEditingPost(prev => ({ ...prev, status: e.target.value as any }))}
                         className="w-full bg-[#00241a] border border-[#c7a85b]/30 text-white rounded-xl px-3 py-2.5 text-xs focus:outline-none"
                       >
-                        <option value="draft">Draft</option>
-                        <option value="published">Published</option>
-                        <option value="hidden">Hidden</option>
+                        <option value="draft">დრაფტი</option>
+                        <option value="published">გამოქვეყნებული</option>
+                        <option value="hidden">დაფარული</option>
                       </select>
                     </div>
 
                     <div className="space-y-1">
-                      <label className="text-xs font-bold text-[#c7a85b]">Category</label>
+                      <label className="text-xs font-bold text-[#c7a85b]">კატეგორია</label>
                       <input
                         type="text"
-                        value={editingPost.category || 'Theory'}
+                        value={editingPost.category || 'თეორია'}
                         onChange={(e) => setEditingPost(prev => ({ ...prev, category: e.target.value }))}
                         className="w-full bg-[#00241a] border border-[#c7a85b]/30 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none"
                       />
                     </div>
 
                     <div className="space-y-1">
-                      <label className="text-xs font-bold text-[#c7a85b]">Author</label>
+                      <label className="text-xs font-bold text-[#c7a85b]">ავტორი</label>
                       <input
                         type="text"
-                        value={editingPost.author || 'Dr. Elene Kvantaliani'}
+                        value={editingPost.author || 'დრ. ელენე ქვანტალიანი'}
                         onChange={(e) => setEditingPost(prev => ({ ...prev, author: e.target.value }))}
                         className="w-full bg-[#00241a] border border-[#c7a85b]/30 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none"
                       />
@@ -1030,7 +1030,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
                     onClick={() => setPreviewPost(editingPost)}
                     className="border border-[#c7a85b] text-[#c7a85b] font-bold text-xs px-5 py-2.5 rounded-xl hover:bg-[#c7a85b]/20 transition-all cursor-pointer flex items-center gap-1.5"
                   >
-                    <Eye size={15} /> Live Preview
+                    <Eye size={15} /> პირდაპირი გადახედვა
                   </button>
 
                   <div className="flex gap-3">
@@ -1039,13 +1039,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
                       onClick={() => setIsPostFormOpen(false)}
                       className="px-5 py-2.5 rounded-xl border border-white/20 text-xs text-white hover:bg-white/10"
                     >
-                      Cancel
+                      გაუქმება
                     </button>
                     <button
                       type="submit"
                       className="bg-[#c7a85b] hover:bg-[#ffdf95] text-[#00241a] font-bold text-xs px-6 py-2.5 rounded-xl transition-all shadow-lg cursor-pointer"
                     >
-                      Save Post
+                      შენახვა
                     </button>
                   </div>
                 </div>
@@ -1058,8 +1058,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
             <div className="space-y-6 animate-fade-in">
               <div className="flex justify-between items-center">
                 <div>
-                  <h2 className="text-2xl font-bold font-display-lg text-white">Pages Manager</h2>
-                  <p className="text-xs text-[#a4d0be]">Create and manage custom dynamic URL pages without developer code</p>
+                  <h2 className="text-2xl font-bold font-display-lg text-white">გვერდების მართვა</h2>
+                  <p className="text-xs text-[#a4d0be]">შექმენით და მართეთ დინამიური გვერდები</p>
                 </div>
 
                 <button
@@ -1069,7 +1069,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
                   }}
                   className="bg-[#c7a85b] hover:bg-[#ffdf95] text-[#00241a] font-bold text-xs px-5 py-3 rounded-2xl transition-all cursor-pointer flex items-center gap-2 shadow-lg"
                 >
-                  <Plus size={16} /> Create Custom Page
+                  <Plus size={16} /> ახალი გვერდის შექმნა
                 </button>
               </div>
 
@@ -1081,7 +1081,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
                       <div className="flex justify-between items-start">
                         <h3 className="text-lg font-bold text-white font-display-lg">{page.title}</h3>
                         <span className="bg-emerald-950 text-emerald-400 border border-emerald-800 text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-full">
-                          {page.status}
+                          {page.status === 'published' ? 'გამოქვეყნებული' : page.status === 'draft' ? 'დრაფტი' : 'დაფარული'}
                         </span>
                       </div>
                       <p className="text-xs font-mono text-[#c7a85b]">/psychosynthesis/{page.slug}</p>
@@ -1089,7 +1089,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
 
                     <div className="flex justify-between items-center border-t border-white/10 pt-4">
                       <span className="text-[11px] text-[#a4d0be]">
-                        Nav visible: <strong className="text-white">{page.navVisible ? 'Yes' : 'No'}</strong>
+                        მენიუში გამოჩენა: <strong className="text-white">{page.navVisible ? 'დიახ' : 'არა'}</strong>
                       </span>
                       <div className="flex gap-2">
                         <button
@@ -1121,7 +1121,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
               <form onSubmit={handleSavePage} className="bg-[#0b251c] border border-[#c7a85b]/40 rounded-3xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden my-auto text-left">
                 <div className="bg-[#00241a] p-6 border-b border-[#c7a85b]/20 flex justify-between items-center">
                   <h3 className="text-lg font-bold text-white font-display-lg">
-                    {editingPage.id ? 'Edit Custom Page' : 'Create Custom Page'}
+                    {editingPage.id ? 'გვერდის რედაქტირება' : 'ახალი გვერდის შექმნა'}
                   </h3>
                   <button type="button" onClick={() => setIsPageFormOpen(false)} className="text-white/60 hover:text-white"><X size={20} /></button>
                 </div>
@@ -1129,18 +1129,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
                 <div className="p-6 md:p-8 overflow-y-auto space-y-4 flex-1">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-1">
-                      <label className="text-xs font-bold text-[#c7a85b]">Page Title *</label>
+                      <label className="text-xs font-bold text-[#c7a85b]">გვერდის სათაური *</label>
                       <input
                         type="text"
                         required
                         value={editingPage.title || ''}
                         onChange={(e) => setEditingPage(prev => ({ ...prev, title: e.target.value }))}
                         className="w-full bg-[#00241a] border border-[#c7a85b]/30 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none"
-                        placeholder="Resources..."
+                        placeholder="რესურსები..."
                       />
                     </div>
                     <div className="space-y-1">
-                      <label className="text-xs font-bold text-[#c7a85b]">URL Slug *</label>
+                      <label className="text-xs font-bold text-[#c7a85b]">URL ბმული (Slug) *</label>
                       <input
                         type="text"
                         required
@@ -1153,7 +1153,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-xs font-bold text-[#c7a85b]">Page Content (WYSIWYG)</label>
+                    <label className="text-xs font-bold text-[#c7a85b]">გვერდის შინაარსი</label>
                     <RichTextEditor
                       value={editingPage.content || ''}
                       onChange={(val) => setEditingPage(prev => ({ ...prev, content: val }))}
@@ -1162,8 +1162,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
                 </div>
 
                 <div className="p-4 bg-[#00241a] border-t border-[#c7a85b]/20 flex justify-end gap-3">
-                  <button type="button" onClick={() => setIsPageFormOpen(false)} className="px-5 py-2 rounded-xl text-xs border border-white/20 text-white">Cancel</button>
-                  <button type="submit" className="bg-[#c7a85b] text-[#00241a] font-bold text-xs px-6 py-2 rounded-xl">Save Page</button>
+                  <button type="button" onClick={() => setIsPageFormOpen(false)} className="px-5 py-2 rounded-xl text-xs border border-white/20 text-white">გაუქმება</button>
+                  <button type="submit" className="bg-[#c7a85b] text-[#00241a] font-bold text-xs px-6 py-2 rounded-xl">გვერდის შენახვა</button>
                 </div>
               </form>
             </div>
@@ -1173,8 +1173,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
           {activeTab === 'homepage' && (
             <div className="space-y-6 animate-fade-in">
               <div>
-                <h2 className="text-2xl font-bold font-display-lg text-white">Homepage Layout & Section Editor</h2>
-                <p className="text-xs text-[#a4d0be]">Edit, reorder, show, or hide homepage sections</p>
+                <h2 className="text-2xl font-bold font-display-lg text-white">მთავარი გვერდის სექციების რედაქტორი</h2>
+                <p className="text-xs text-[#a4d0be]">მართეთ სექციების თანმიმდევრობა და ხილვადობა</p>
               </div>
 
               <div className="space-y-4">
@@ -1187,8 +1187,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
                           <button onClick={() => handleReorderSections('down', idx)} className="hover:text-[#c7a85b] p-0.5"><ArrowDown size={14} /></button>
                         </div>
                         <div>
-                          <h3 className="text-base font-bold text-white font-display-lg capitalize">{section.sectionKey.replace('_', ' ')} Section</h3>
-                          <span className="text-[10px] text-[#c7a85b]">Order #{section.sortOrder}</span>
+                          <h3 className="text-base font-bold text-white font-display-lg capitalize">{section.sectionKey.replace('_', ' ')} სექცია</h3>
+                          <span className="text-[10px] text-[#c7a85b]">რიგი #{section.sortOrder}</span>
                         </div>
                       </div>
 
@@ -1203,13 +1203,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
                           }}
                           className="rounded accent-[#c7a85b]"
                         />
-                        Visible on Homepage
+                        გამოჩნდეს მთავარ გვერდზე
                       </label>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
                       <div className="space-y-1">
-                        <label className="font-bold text-[#c7a85b]">Heading Title</label>
+                        <label className="font-bold text-[#c7a85b]">სექციის სათაური</label>
                         <input
                           type="text"
                           value={section.title || ''}
@@ -1223,7 +1223,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
                       </div>
 
                       <div className="space-y-1">
-                        <label className="font-bold text-[#c7a85b]">Subtitle / Category Tag</label>
+                        <label className="font-bold text-[#c7a85b]">ქვესათაური / ტეგი</label>
                         <input
                           type="text"
                           value={section.subtitle || ''}
@@ -1241,7 +1241,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
                       onClick={() => handleSaveSections(sections)}
                       className="bg-[#c7a85b] text-[#00241a] font-bold text-xs px-5 py-2 rounded-xl hover:bg-[#ffdf95] transition-all cursor-pointer"
                     >
-                      Save Section Changes
+                      სექციის შენახვა
                     </button>
                   </div>
                 ))}
@@ -1254,15 +1254,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
             <div className="space-y-6 animate-fade-in">
               <div className="flex justify-between items-center">
                 <div>
-                  <h2 className="text-2xl font-bold font-display-lg text-white">Header Navigation Manager</h2>
-                  <p className="text-xs text-[#a4d0be]">Reorder and manage top navigation menu items</p>
+                  <h2 className="text-2xl font-bold font-display-lg text-white">მენიუს ნავიგაციის მართვა</h2>
+                  <p className="text-xs text-[#a4d0be]">მართეთ ვებ-საიტის მთავარი მენიუს ელემენტები</p>
                 </div>
 
                 <button
                   onClick={() => {
                     const newItem: NavigationItem = {
                       id: `nav-${Date.now()}`,
-                      label: 'New Link',
+                      label: 'ახალი ბმული',
                       url: '/',
                       isExternal: false,
                       isVisible: true,
@@ -1272,7 +1272,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
                   }}
                   className="bg-[#c7a85b] hover:bg-[#ffdf95] text-[#00241a] font-bold text-xs px-5 py-2.5 rounded-2xl cursor-pointer"
                 >
-                  <Plus size={16} className="inline mr-1" /> Add Menu Item
+                  <Plus size={16} className="inline mr-1" /> მენიუს ელემენტის დამატება
                 </button>
               </div>
 
@@ -1338,7 +1338,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
                   onClick={() => handleSaveNavigation(navigationItems)}
                   className="bg-[#c7a85b] text-[#00241a] font-bold text-xs px-6 py-2.5 rounded-xl cursor-pointer"
                 >
-                  Save Navigation Layout
+                  მენიუს შენახვა
                 </button>
               </div>
             </div>
@@ -1349,8 +1349,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
             <div className="space-y-6 animate-fade-in">
               <div className="flex justify-between items-center">
                 <div>
-                  <h2 className="text-2xl font-bold font-display-lg text-white">Media Assets Library</h2>
-                  <p className="text-xs text-[#a4d0be]">Uploaded images and assets</p>
+                  <h2 className="text-2xl font-bold font-display-lg text-white">მედია ბიბლიოთეკა</h2>
+                  <p className="text-xs text-[#a4d0be]">ატვირთული სურათები და ფაილები</p>
                 </div>
                 <button
                   onClick={() => {
@@ -1359,7 +1359,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
                   }}
                   className="bg-[#c7a85b] text-[#00241a] font-bold text-xs px-5 py-2.5 rounded-2xl cursor-pointer"
                 >
-                  Open Upload Gallery
+                  ატვირთვის გალერეის გახსნა
                 </button>
               </div>
 
@@ -1379,15 +1379,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
             <div className="space-y-6 animate-fade-in">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                  <h2 className="text-2xl font-bold font-display-lg text-white">Registered User Management</h2>
-                  <p className="text-xs text-[#a4d0be]">Manage registered user accounts (Passwords are 100% encrypted & hidden)</p>
+                  <h2 className="text-2xl font-bold font-display-lg text-white">მომხმარებლების მართვა</h2>
+                  <p className="text-xs text-[#a4d0be]">რეგისტრირებული მომხმარებლების ანგარიშების მართვა</p>
                 </div>
 
                 <div className="relative w-full sm:w-64">
                   <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40" />
                   <input
                     type="text"
-                    placeholder="Search user by name or email..."
+                    placeholder="ძებნა სახელით ან ელ-ფოსტით..."
                     value={userSearch}
                     onChange={(e) => setUserSearch(e.target.value)}
                     className="w-full bg-[#0b251c] border border-[#c7a85b]/30 rounded-xl pl-9 pr-4 py-2 text-xs text-white placeholder-white/40 focus:outline-none focus:border-[#c7a85b]"
@@ -1399,11 +1399,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
                 <table className="w-full text-left text-xs text-white">
                   <thead className="bg-[#00241a] text-[#c7a85b] border-b border-[#c7a85b]/20 font-bold uppercase">
                     <tr>
-                      <th className="p-4">Name</th>
-                      <th className="p-4">Email / Username</th>
-                      <th className="p-4">Role</th>
-                      <th className="p-4">Status</th>
-                      <th className="p-4 text-right">Actions</th>
+                      <th className="p-4">სახელი</th>
+                      <th className="p-4">ელ-ფოსტა / მომხმარებელი</th>
+                      <th className="p-4">როლი</th>
+                      <th className="p-4">სტატუსი</th>
+                      <th className="p-4 text-right">მოქმედებები</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/5">
@@ -1421,7 +1421,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
                           <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase ${
                             u.status === 'active' ? 'bg-emerald-950 text-emerald-400' : 'bg-red-950 text-red-400'
                           }`}>
-                            {u.status || 'active'}
+                            {u.status === 'active' ? 'აქტიური' : 'დეაქტივირებული'}
                           </span>
                         </td>
                         <td className="p-4 text-right">
@@ -1429,7 +1429,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
                             onClick={() => handleToggleUserStatus(u.id, u.status || 'active')}
                             className="bg-[#00241a] border border-white/20 px-3 py-1 rounded-xl text-xs font-bold hover:bg-white/10"
                           >
-                            {u.status === 'active' ? 'Disable Account' : 'Activate Account'}
+                            {u.status === 'active' ? 'დეაქტივაცია' : 'გააქტიურება'}
                           </button>
                         </td>
                       </tr>
@@ -1444,13 +1444,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
           {activeTab === 'settings' && (
             <form onSubmit={handleSaveSettings} className="space-y-6 animate-fade-in max-w-3xl">
               <div>
-                <h2 className="text-2xl font-bold font-display-lg text-white">Global Website Settings</h2>
-                <p className="text-xs text-[#a4d0be]">Manage general site text, footer contact info, and branding</p>
+                <h2 className="text-2xl font-bold font-display-lg text-white">საიტის გლობალური პარამეტრები</h2>
+                <p className="text-xs text-[#a4d0be]">მართეთ საიტის ტექსტები, საკონტაქტო ინფორმაცია და ბრენდინგი</p>
               </div>
 
               <div className="bg-[#0b251c] border border-[#c7a85b]/30 rounded-3xl p-6 space-y-4 shadow-xl">
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-[#c7a85b]">Website Title</label>
+                  <label className="text-xs font-bold text-[#c7a85b]">ვებ-საიტის სათაური</label>
                   <input
                     type="text"
                     value={siteSettings.siteTitle || ''}
@@ -1461,7 +1461,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-1">
-                    <label className="text-xs font-bold text-[#c7a85b]">Contact Email</label>
+                    <label className="text-xs font-bold text-[#c7a85b]">საკონტაქტო ელ-ფოსტა</label>
                     <input
                       type="text"
                       value={siteSettings.footerContactEmail || ''}
@@ -1470,7 +1470,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
                     />
                   </div>
                   <div className="space-y-1">
-                    <label className="text-xs font-bold text-[#c7a85b]">Contact Phone</label>
+                    <label className="text-xs font-bold text-[#c7a85b]">საკონტაქტო ტელეფონი</label>
                     <input
                       type="text"
                       value={siteSettings.footerContactPhone || ''}
@@ -1481,7 +1481,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-[#c7a85b]">Footer Copyright</label>
+                  <label className="text-xs font-bold text-[#c7a85b]">ფუტერის საავტორო უფლებები</label>
                   <input
                     type="text"
                     value={siteSettings.footerCopyright || ''}
@@ -1494,7 +1494,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
                   type="submit"
                   className="bg-[#c7a85b] text-[#00241a] font-bold text-xs px-6 py-2.5 rounded-xl cursor-pointer"
                 >
-                  Save Global Settings
+                  პარამეტრების შენახვა
                 </button>
               </div>
             </form>
@@ -1504,8 +1504,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
           {activeTab === 'activity' && (
             <div className="space-y-6 animate-fade-in">
               <div>
-                <h2 className="text-2xl font-bold font-display-lg text-white">Admin Activity Log</h2>
-                <p className="text-xs text-[#a4d0be]">Audit trail of all content updates and actions</p>
+                <h2 className="text-2xl font-bold font-display-lg text-white">ადმინისტრატორის მოქმედებების ჟურნალი</h2>
+                <p className="text-xs text-[#a4d0be]">ყველა განხორციელებული ცვლილების ისტორია</p>
               </div>
 
               <div className="bg-[#0b251c] border border-[#c7a85b]/30 rounded-3xl p-6 shadow-xl space-y-3">

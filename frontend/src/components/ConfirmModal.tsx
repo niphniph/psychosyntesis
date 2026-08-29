@@ -14,10 +14,10 @@ interface ConfirmModalProps {
 
 export const ConfirmModal: React.FC<ConfirmModalProps> = ({
   isOpen,
-  title = 'Confirm Action',
+  title = 'მოქმედების დადასტურება',
   message,
-  confirmLabel = 'Delete',
-  cancelLabel = 'Cancel',
+  confirmLabel = 'წაშლა',
+  cancelLabel = 'გაუქმება',
   isDanger = true,
   onConfirm,
   onClose

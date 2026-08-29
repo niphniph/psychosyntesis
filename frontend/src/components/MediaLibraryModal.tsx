@@ -111,8 +111,8 @@ export const MediaLibraryModal: React.FC<MediaLibraryModalProps> = ({
               <ImageIcon size={20} />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-white font-display-lg">Media Library</h3>
-              <p className="text-xs text-[#a4d0be]">Select or upload images for your content</p>
+              <h3 className="text-lg font-bold text-white font-display-lg">მედია ბიბლიოთეკა</h3>
+              <p className="text-xs text-[#a4d0be]">აირჩიეთ ან ატვირთეთ სურათი</p>
             </div>
           </div>
           <button
@@ -132,7 +132,7 @@ export const MediaLibraryModal: React.FC<MediaLibraryModalProps> = ({
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40" size={16} />
               <input
                 type="text"
-                placeholder="Search images by filename or alt text..."
+                placeholder="ძებნა ფაილის სახელით ან აღწერით..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full bg-[#00241a] border border-[#c7a85b]/30 rounded-xl pl-9 pr-4 py-2 text-xs text-white placeholder-white/40 focus:outline-none focus:border-[#c7a85b]"
@@ -142,7 +142,7 @@ export const MediaLibraryModal: React.FC<MediaLibraryModalProps> = ({
             {/* Upload Button */}
             <label className="bg-[#c7a85b] hover:bg-[#ffdf95] text-[#00241a] font-bold text-xs px-5 py-2.5 rounded-xl cursor-pointer transition-all flex items-center justify-center gap-2 shadow-lg">
               <Upload size={16} />
-              {uploading ? 'Uploading...' : 'Upload New Image'}
+              {uploading ? 'იტვირთება...' : 'ახალი სურათის ატვირთვა'}
               <input type="file" accept="image/*" onChange={handleFileUpload} className="hidden" disabled={uploading} />
             </label>
           </div>
@@ -156,13 +156,13 @@ export const MediaLibraryModal: React.FC<MediaLibraryModalProps> = ({
           {/* Media Grid */}
           {loading ? (
             <div className="py-20 text-center text-[#a4d0be] text-xs font-bold animate-pulse">
-              Loading Media Library...
+              მედია ბიბლიოთეკა იტვირთება...
             </div>
           ) : filteredMedia.length === 0 ? (
             <div className="py-20 text-center border-2 border-dashed border-white/10 rounded-2xl p-8 space-y-3">
               <ImageIcon size={36} className="mx-auto text-white/20" />
-              <p className="text-sm font-bold text-white/60">No images found</p>
-              <p className="text-xs text-[#a4d0be]/60">Upload an image to start using it in your content</p>
+              <p className="text-sm font-bold text-white/60">სურათები არ მოიძებნა</p>
+              <p className="text-xs text-[#a4d0be]/60">ატვირთეთ ახალი სურათი საიტზე გამოსაყენებლად</p>
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
@@ -199,7 +199,7 @@ export const MediaLibraryModal: React.FC<MediaLibraryModalProps> = ({
                       <div className="flex justify-end gap-2">
                         <button
                           onClick={(e) => handleDelete(item.id, e)}
-                          title="Delete image"
+                          title="სურათის წაშლა"
                           className="bg-red-600/80 hover:bg-red-600 text-white p-1.5 rounded-lg transition-colors"
                         >
                           <Trash2 size={13} />
@@ -221,9 +221,9 @@ export const MediaLibraryModal: React.FC<MediaLibraryModalProps> = ({
         <div className="p-4 border-t border-[#c7a85b]/20 bg-[#00241a] flex flex-col sm:flex-row justify-between items-center gap-4">
           <div className="text-xs text-[#a4d0be] truncate max-w-md">
             {selectedUrl ? (
-              <span className="font-mono text-white/80">Selected: {selectedUrl}</span>
+              <span className="font-mono text-white/80">არჩეულია: {selectedUrl}</span>
             ) : (
-              'Click an image to select it'
+              'დააწკაპუნეთ სურათს ასარჩევად'
             )}
           </div>
 
@@ -232,7 +232,7 @@ export const MediaLibraryModal: React.FC<MediaLibraryModalProps> = ({
               onClick={onClose}
               className="flex-1 sm:flex-initial px-5 py-2 rounded-xl border border-white/20 text-xs text-white hover:bg-white/10 transition-colors cursor-pointer"
             >
-              Cancel
+              გაუქმება
             </button>
             <button
               disabled={!selectedUrl}
@@ -244,7 +244,7 @@ export const MediaLibraryModal: React.FC<MediaLibraryModalProps> = ({
               }}
               className="flex-1 sm:flex-initial bg-[#c7a85b] hover:bg-[#ffdf95] text-[#00241a] font-bold text-xs px-6 py-2 rounded-xl transition-all cursor-pointer disabled:opacity-40"
             >
-              Use Selected Image
+              არჩეული სურათის გამოყენება
             </button>
           </div>
         </div>
