@@ -143,6 +143,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
   const [mediaList, setMediaList] = useState<MediaItem[]>([]);
   const [isMediaModalOpen, setIsMediaModalOpen] = useState(false);
   const [mediaTargetField, setMediaTargetField] = useState<'postFeatured' | 'pageHero' | 'sectionImage' | 'sectionBg' | 'editor' | null>(null);
+  const [mediaTargetSectionIndex, setMediaTargetSectionIndex] = useState<number | null>(null);
 
   // Users State
   const [users, setUsers] = useState<UserProfile[]>([]);
@@ -418,10 +419,39 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
 
     try {
       await api.put('/admin/homepage-sections/reorder', { orderedIds: newSections.map(s => s.id) });
-      showToast('Section layout saved!');
+      showToast('სექციების განლაგება შენახულია!');
     } catch (err) {
       fetchSections();
     }
+  };
+
+  const handleAddSection = () => {
+    const newSection: HomepageSection = {
+      id: `sec-${Date.now()}`,
+      sectionKey: 'custom',
+      title: 'ახალი სექცია',
+      subtitle: 'ქვესათაური',
+      content: '',
+      ctaText: '',
+      ctaLink: '',
+      imageUrl: '',
+      bgImageUrl: '',
+      isVisible: true,
+      sortOrder: sections.length + 1
+    };
+    handleSaveSections([...sections, newSection]);
+  };
+
+  const handleDeleteSection = (id: string, title: string) => {
+    setConfirmModalState({
+      isOpen: true,
+      title: 'სექციის წაშლა',
+      message: `დარწმუნებული ხართ, რომ გსურთ წაშალოთ სექცია "${title}"?`,
+      onConfirm: async () => {
+        const updated = sections.filter(s => s.id !== id);
+        handleSaveSections(updated);
+      }
+    });
   };
 
   // --- NAVIGATION ACTIONS ---
@@ -469,6 +499,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
       setEditingPost(prev => ({ ...prev, featuredImage: url }));
     } else if (mediaTargetField === 'pageHero' && editingPage) {
       setEditingPage(prev => ({ ...prev, heroImage: url }));
+    } else if (mediaTargetField === 'sectionImage' && mediaTargetSectionIndex !== null) {
+      const updated = [...sections];
+      if (updated[mediaTargetSectionIndex]) {
+        updated[mediaTargetSectionIndex].imageUrl = url;
+        setSections(updated);
+      }
+    } else if (mediaTargetField === 'sectionBg' && mediaTargetSectionIndex !== null) {
+      const updated = [...sections];
+      if (updated[mediaTargetSectionIndex]) {
+        updated[mediaTargetSectionIndex].bgImageUrl = url;
+        setSections(updated);
+      }
     } else if (mediaTargetField === 'editor' && editingPost) {
       setEditingPost(prev => ({
         ...prev,
@@ -1172,42 +1214,69 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
           {/* ----------------- TAB 4: HOMEPAGE EDITOR ----------------- */}
           {activeTab === 'homepage' && (
             <div className="space-y-6 animate-fade-in">
-              <div>
-                <h2 className="text-2xl font-bold font-display-lg text-white">მთავარი გვერდის სექციების რედაქტორი</h2>
-                <p className="text-xs text-[#a4d0be]">მართეთ სექციების თანმიმდევრობა და ხილვადობა</p>
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                  <h2 className="text-2xl font-bold font-display-lg text-white">მთავარი გვერდის სექციების რედაქტორი</h2>
+                  <p className="text-xs text-[#a4d0be]">მართეთ სექციების ტექსტები, სურათები, ბმულები, თანმიმდევრობა და ხილვადობა</p>
+                </div>
+
+                <button
+                  onClick={handleAddSection}
+                  className="bg-[#c7a85b] hover:bg-[#ffdf95] text-[#00241a] font-bold text-xs px-5 py-3 rounded-2xl transition-all cursor-pointer flex items-center gap-2 shadow-lg"
+                >
+                  <Plus size={16} /> ახალი სექციის დამატება
+                </button>
               </div>
 
-              <div className="space-y-4">
+              <div className="space-y-6">
                 {sections.map((section, idx) => (
-                  <div key={section.id} className="bg-[#0b251c] border border-[#c7a85b]/30 rounded-3xl p-6 shadow-xl space-y-4">
+                  <div key={section.id} className="bg-[#0b251c] border border-[#c7a85b]/30 rounded-3xl p-6 shadow-xl space-y-6 text-left">
                     <div className="flex justify-between items-center border-b border-white/10 pb-4">
                       <div className="flex items-center gap-3">
                         <div className="flex flex-col gap-0.5">
-                          <button onClick={() => handleReorderSections('up', idx)} className="hover:text-[#c7a85b] p-0.5"><ArrowUp size={14} /></button>
-                          <button onClick={() => handleReorderSections('down', idx)} className="hover:text-[#c7a85b] p-0.5"><ArrowDown size={14} /></button>
+                          <button onClick={() => handleReorderSections('up', idx)} title="ზემოთ გადაადგილება" className="hover:text-[#c7a85b] p-0.5"><ArrowUp size={14} /></button>
+                          <button onClick={() => handleReorderSections('down', idx)} title="ქვემოთ გადაადგილება" className="hover:text-[#c7a85b] p-0.5"><ArrowDown size={14} /></button>
                         </div>
                         <div>
-                          <h3 className="text-base font-bold text-white font-display-lg capitalize">{section.sectionKey.replace('_', ' ')} სექცია</h3>
+                          <h3 className="text-base font-bold text-white font-display-lg capitalize">
+                            {section.sectionKey === 'hero' ? 'მთავარი ბანერი (Hero)' :
+                             section.sectionKey === 'intro' ? 'შესავალი / ფილოსოფია (Intro)' :
+                             section.sectionKey === 'cta' ? 'მოწოდება მოქმედებისკენ (CTA)' :
+                             `${section.sectionKey.replace('_', ' ')} სექცია`}
+                          </h3>
                           <span className="text-[10px] text-[#c7a85b]">რიგი #{section.sortOrder}</span>
                         </div>
                       </div>
 
-                      <label className="flex items-center gap-2 text-xs text-[#a4d0be] cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={section.isVisible}
-                          onChange={(e) => {
-                            const updated = [...sections];
-                            updated[idx].isVisible = e.target.checked;
-                            handleSaveSections(updated);
-                          }}
-                          className="rounded accent-[#c7a85b]"
-                        />
-                        გამოჩნდეს მთავარ გვერდზე
-                      </label>
+                      <div className="flex items-center gap-4">
+                        <label className="flex items-center gap-2 text-xs text-[#a4d0be] cursor-pointer font-bold">
+                          <input
+                            type="checkbox"
+                            checked={section.isVisible}
+                            onChange={(e) => {
+                              const updated = [...sections];
+                              updated[idx].isVisible = e.target.checked;
+                              handleSaveSections(updated);
+                            }}
+                            className="rounded accent-[#c7a85b]"
+                          />
+                          გამოჩნდეს მთავარ გვერდზე
+                        </label>
+
+                        {section.sectionKey === 'custom' && (
+                          <button
+                            onClick={() => handleDeleteSection(section.id, section.title)}
+                            title="სექციის წაშლა"
+                            className="text-red-400 hover:text-red-300 p-1.5 rounded-xl hover:bg-red-950/50"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        )}
+                      </div>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                      {/* Section Title */}
                       <div className="space-y-1">
                         <label className="font-bold text-[#c7a85b]">სექციის სათაური</label>
                         <input
@@ -1218,10 +1287,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
                             updated[idx].title = e.target.value;
                             setSections(updated);
                           }}
-                          className="w-full bg-[#00241a] border border-[#c7a85b]/30 rounded-xl px-3 py-2 text-white focus:outline-none"
+                          className="w-full bg-[#00241a] border border-[#c7a85b]/30 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-[#c7a85b]"
                         />
                       </div>
 
+                      {/* Subtitle */}
                       <div className="space-y-1">
                         <label className="font-bold text-[#c7a85b]">ქვესათაური / ტეგი</label>
                         <input
@@ -1232,17 +1302,127 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
                             updated[idx].subtitle = e.target.value;
                             setSections(updated);
                           }}
-                          className="w-full bg-[#00241a] border border-[#c7a85b]/30 rounded-xl px-3 py-2 text-white focus:outline-none"
+                          className="w-full bg-[#00241a] border border-[#c7a85b]/30 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-[#c7a85b]"
                         />
                       </div>
                     </div>
 
-                    <button
-                      onClick={() => handleSaveSections(sections)}
-                      className="bg-[#c7a85b] text-[#00241a] font-bold text-xs px-5 py-2 rounded-xl hover:bg-[#ffdf95] transition-all cursor-pointer"
-                    >
-                      სექციის შენახვა
-                    </button>
+                    {/* Content Body */}
+                    <div className="space-y-1 text-xs">
+                      <label className="font-bold text-[#c7a85b]">სექციის შინაარსი / აღწერა</label>
+                      <textarea
+                        rows={3}
+                        value={section.content || ''}
+                        onChange={(e) => {
+                          const updated = [...sections];
+                          updated[idx].content = e.target.value;
+                          setSections(updated);
+                        }}
+                        className="w-full bg-[#00241a] border border-[#c7a85b]/30 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-[#c7a85b]"
+                        placeholder="სექციის დეტალური ტექსტი..."
+                      />
+                    </div>
+
+                    {/* CTA Button Text & Link */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                      <div className="space-y-1">
+                        <label className="font-bold text-[#c7a85b]">ღილაკის ტექსტი (CTA Text)</label>
+                        <input
+                          type="text"
+                          value={section.ctaText || ''}
+                          onChange={(e) => {
+                            const updated = [...sections];
+                            updated[idx].ctaText = e.target.value;
+                            setSections(updated);
+                          }}
+                          className="w-full bg-[#00241a] border border-[#c7a85b]/30 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-[#c7a85b]"
+                          placeholder="მაგ: დაიწყე მოგზაურობა"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="font-bold text-[#c7a85b]">ღილაკის ბმული (CTA Link)</label>
+                        <input
+                          type="text"
+                          value={section.ctaLink || ''}
+                          onChange={(e) => {
+                            const updated = [...sections];
+                            updated[idx].ctaLink = e.target.value;
+                            setSections(updated);
+                          }}
+                          className="w-full bg-[#00241a] border border-[#c7a85b]/30 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-[#c7a85b]"
+                          placeholder="workspace / academic / https://..."
+                        />
+                      </div>
+                    </div>
+
+                    {/* Image URL & Background Image URL */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                      <div className="space-y-1">
+                        <label className="font-bold text-[#c7a85b]">სურათის URL (Image)</label>
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={section.imageUrl || ''}
+                            onChange={(e) => {
+                              const updated = [...sections];
+                              updated[idx].imageUrl = e.target.value;
+                              setSections(updated);
+                            }}
+                            className="flex-1 bg-[#00241a] border border-[#c7a85b]/30 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none"
+                            placeholder="https://..."
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setMediaTargetField('sectionImage');
+                              setMediaTargetSectionIndex(idx);
+                              setIsMediaModalOpen(true);
+                            }}
+                            className="bg-[#c7a85b]/20 hover:bg-[#c7a85b] text-[#c7a85b] hover:text-[#00241a] px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1 shrink-0"
+                          >
+                            <ImageIcon size={14} /> სურათი
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="font-bold text-[#c7a85b]">ფონის სურათის URL (Background)</label>
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={section.bgImageUrl || ''}
+                            onChange={(e) => {
+                              const updated = [...sections];
+                              updated[idx].bgImageUrl = e.target.value;
+                              setSections(updated);
+                            }}
+                            className="flex-1 bg-[#00241a] border border-[#c7a85b]/30 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none"
+                            placeholder="https://..."
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setMediaTargetField('sectionBg');
+                              setMediaTargetSectionIndex(idx);
+                              setIsMediaModalOpen(true);
+                            }}
+                            className="bg-[#c7a85b]/20 hover:bg-[#c7a85b] text-[#c7a85b] hover:text-[#00241a] px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1 shrink-0"
+                          >
+                            <ImageIcon size={14} /> ფონი
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end pt-2">
+                      <button
+                        onClick={() => handleSaveSections(sections)}
+                        className="bg-[#c7a85b] text-[#00241a] font-bold text-xs px-6 py-2.5 rounded-xl hover:bg-[#ffdf95] transition-all cursor-pointer shadow-lg"
+                      >
+                        სექციის შენახვა
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
