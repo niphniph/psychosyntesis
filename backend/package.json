@@ -10,11 +10,13 @@
     "start": "node dist/server.js"
   },
   "dependencies": {
+    "@types/multer": "^2.2.0",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
-    "jsonwebtoken": "^9.0.2"
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^2.2.0"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",

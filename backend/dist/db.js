@@ -150,6 +150,131 @@ const seedInquiries = [
         createdAt: new Date(Date.now() - 28800000).toISOString() // 8 hours ago
     }
 ];
+const seedPosts = [
+    {
+        id: 'post-1',
+        title: 'ფსიქოსინთეზი და პიროვნული ტრანსფორმაცია',
+        slug: 'understanding-psychosynthesis',
+        shortDescription: 'რობერტო ასაჯიოლის მოძღვრება ადამიანის შინაგანი მთლიანობისა და თვითრეალიზაციის შესახებ.',
+        content: '<h2>ფსიქოსინთეზის არსი</h2><p>ფსიქოსინთეზი არის ინტეგრალური ფსიქოლოგიური სისტემა, რომელიც შეიმუშავა იტალიელმა ფსიქიატრმა რობერტო ასაჯიოლიმ. იგი აერთიანებს მეცნიერულ დაკვირვებასა და სულიერ გამოცდილებას.</p><h3>ძირითადი პრინციპები</h3><ul><li>დეიდენტიფიკაცია და ცენტრალური "მე"</li><li>ქვეპიროვნებების იდენტიფიცირება და ჰარმონიზაცია</li><li>ნებისყოფის განვითარება</li></ul>',
+        featuredImage: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBNDeZZ08mYF6XPWzNvdpcdgGEZZEInkt1LJcyj21WLrUU6cPTULdQOoPi0QycgMzwUodPdoV-G5I96r5z8j983ajKS97dUxzC6c9ncp9ffKmxvG0175l5YgQlHWM0_RPU2ZELQoy3Q_9wf9X583ADmHTMjq9oZ6_lSHZSpOrePAmrGxW3IS2x23xJchjTHbTWmOw-r6IHbK5pHOXOwLMCDX_1TUZo7dQ9RycL-PX_vQvY_1FsjF_4B',
+        category: 'თეორია',
+        tags: ['Assagioli', 'Psychosynthesis', 'Personal Growth'],
+        author: 'Dr. Elene Kvantaliani',
+        publishDate: new Date().toISOString(),
+        status: 'published',
+        featured: true,
+        visibility: 'public',
+        displayLocations: ['homepage_featured', 'articles'],
+        seoTitle: 'ფსიქოსინთეზი და პიროვნული ტრანსფორმაცია - სტატია',
+        seoDescription: 'გაეცანით რობერტო ასაჯიოლის ფსიქოსინთეზის ძირითად თეორიულ პრინციპებს.',
+        sortOrder: 1,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+    },
+    {
+        id: 'post-2',
+        title: 'ქვეპიროვნებების დეიდენტიფიკაციის ხელოვნება',
+        slug: 'subpersonalities-deidentification',
+        shortDescription: 'როგორ გავთავისუფლდეთ ემოციური ავტომატიზმებისგან და ვიპოვოთ შინაგანი დამკვირვებელი.',
+        content: '<h2>რა არის დეიდენტიფიკაცია?</h2><p>დეიდენტიფიკაციის პრინციპი ეფუძნება ფორმულას: <em>"მე მაქვს ემოციები, მაგრამ მე არ ვარ ჩემი ემოცია. მე მაქვს სხეული, მაგრამ მე არ ვარ ჩემი სხეული."</em></p>',
+        featuredImage: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDwP6hC4cxO4ChS9CSBg6rFMaXtZiezNQK8cTyXYEBsf2SyQJNzZyjd5gl-qU1yztscnaaHtFvz-uQPOhweDhZ63p3qOIaNIe0wTJ_pQA_5MOEv7r6netKM8I_KMiuNY9-3a1GI4tpy60fReYV5xIdgFkwcbTpw5LfViehgfENmnKtuswBNu6ds7FZQdNBIe3ws4flqeMIpxRjGD6_XJmlQzuvCnEuuGyMswDvhb_mX-tYkNRXgutjL',
+        category: 'პრაქტიკა',
+        tags: ['Deidentification', 'Self'],
+        author: 'Dr. K. Abashidze',
+        publishDate: new Date().toISOString(),
+        status: 'published',
+        featured: true,
+        visibility: 'public',
+        displayLocations: ['homepage_latest', 'articles', 'resources'],
+        seoTitle: 'ქვეპიროვნებების დეიდენტიფიკაცია',
+        seoDescription: 'პრაქტიკული გზამკვლევი შინაგანი დამკვირვებლის აღმოსაჩენად.',
+        sortOrder: 2,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+    }
+];
+const seedPages = [
+    {
+        id: 'page-resources',
+        title: 'ფსიქოსინთეზის რესურსები',
+        slug: 'resources',
+        content: '<h2>აკადემიური და პრაქტიკული რესურსები</h2><p>აქ იხილავთ ფსიქოსინთეზის ქართული ინსტიტუტის მიერ მომზადებულ მასალებს, წიგნებსა და კვლევებს.</p>',
+        heroImage: 'https://lh3.googleusercontent.com/aida-public/AB6AXuADlkkmgIHMdESPqFQWxN-qaJEefgYUcgPDfTfY6I1ULMeo84qhptW_vG8srsDba5wWxCfUXPHYdQZ1lN4XWDMwl93ZAn-mAnCpanna14_g6DJlEf6ak8iE3HJ7krX-6TGD8Gvze5xjGnG8CxTFdppVDqN8qjIeuVERCiT2pzIRa_6TaYBvltqryMiCivqjDUR-UGzSuI8u5D7-RLqnNZ8ozDWH2S_-SJ0fOwoiWoflJgtbPFClyFP6',
+        seoTitle: 'რესურსები - ფსიქოსინთეზის ინსტიტუტი',
+        seoDescription: 'ფსიქოსინთეზის წიგნები, სტატიები და ელექტრონული ბიბლიოთეკა.',
+        status: 'published',
+        navVisible: true,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+    }
+];
+const seedHomepageSections = [
+    {
+        id: 'sec-hero',
+        sectionKey: 'hero',
+        title: 'სულის მთლიანობისა და პიროვნული ჰარმონიის გზა',
+        subtitle: 'ფსიქოსინთეზის ქართული ინსტიტუტი გიწვევთ თვითშემეცნების სიღრმეებში, სადაც აკადემიური ცოდნა და სულიერი პრაქტიკა ერთიანდება.',
+        ctaText: 'დაიწყე მოგზაურობა',
+        ctaLink: '/workspace',
+        bgImageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuADlkkmgIHMdESPqFQWxN-qaJEefgYUcgPDfTfY6I1ULMeo84qhptW_vG8srsDba5wWxCfUXPHYdQZ1lN4XWDMwl93ZAn-mAnCpanna14_g6DJlEf6ak8iE3HJ7krX-6TGD8Gvze5xjGnG8CxTFdppVDqN8qjIeuVERCiT2pzIRa_6TaYBvltqryMiCivqjDUR-UGzSuI8u5D7-RLqnNZ8ozDWH2S_-SJ0fOwoiWoflJgtbPFClyFP6',
+        isVisible: true,
+        sortOrder: 1
+    },
+    {
+        id: 'sec-intro',
+        sectionKey: 'intro',
+        title: 'რა არის ფსიქოსინთეზი?',
+        subtitle: 'ფილოსოფია & ისტორია',
+        content: 'ფსიქოსინთეზი არის ფსიქოლოგიის ჰუმანისტური და ტრანსპერსონალური მიმართულება, რომელიც დააფუძნა რობერტო ასაჯიოლიმ. ეს არის მიდგომა, რომელიც ადამიანს განიხილავს როგორც ერთიან მთლიანობას — სხეულის, გრძნობების, გონებისა და სულის სინთეზს.',
+        imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBNDeZZ08mYF6XPWzNvdpcdgGEZZEInkt1LJcyj21WLrUU6cPTULdQOoPi0QycgMzwUodPdoV-G5I96r5z8j983ajKS97dUxzC6c9ncp9ffKmxvG0175l5YgQlHWM0_RPU2ZELQoy3Q_9wf9X583ADmHTMjq9oZ6_lSHZSpOrePAmrGxW3IS2x23xJchjTHbTWmOw-r6IHbK5pHOXOwLMCDX_1TUZo7dQ9RycL-PX_vQvY_1FsjF_4B',
+        isVisible: true,
+        sortOrder: 2
+    },
+    {
+        id: 'sec-featured',
+        sectionKey: 'featured_content',
+        title: 'ჩვენი მიმართულებები',
+        subtitle: 'აკადემიური და პრაქტიკული სექციები',
+        isVisible: true,
+        sortOrder: 3
+    },
+    {
+        id: 'sec-articles',
+        sectionKey: 'latest_articles',
+        title: 'უახლესი პუბლიკაციები',
+        subtitle: 'სტატიები და გამოკვლევები',
+        isVisible: true,
+        sortOrder: 4
+    },
+    {
+        id: 'sec-cta',
+        sectionKey: 'cta',
+        title: 'მზად ხართ ტრანსფორმაციისთვის?',
+        subtitle: 'შემოუერთდით ჩვენს საზოგადოებას და დაიწყეთ მოგზაურობა სულიერი და ინტელექტუალური სიმწიფისკენ.',
+        ctaText: 'ღია კარის დღეზე ჩაწერა',
+        ctaLink: '/events',
+        isVisible: true,
+        sortOrder: 5
+    }
+];
+const seedNavigationItems = [
+    { id: 'nav-1', label: 'მთავარი', url: '/', isExternal: false, isVisible: true, sortOrder: 1 },
+    { id: 'nav-2', label: 'ჩვენ შესახებ', url: '/#about-philosophy', isExternal: false, isVisible: true, sortOrder: 2 },
+    { id: 'nav-3', label: 'დამფუძნებელი', url: '/founder', isExternal: false, isVisible: true, sortOrder: 3 },
+    { id: 'nav-4', label: 'აკადემიური პორტალი', url: '/academic', isExternal: false, isVisible: true, sortOrder: 4 },
+    { id: 'nav-5', label: 'რესურსები', url: '/resources', isExternal: false, isVisible: true, sortOrder: 5 },
+    { id: 'nav-6', label: 'ღონისძიებები', url: '/events', isExternal: false, isVisible: true, sortOrder: 6 }
+];
+const seedActivityLog = [
+    {
+        id: 'act-1',
+        action: 'System initialized',
+        entityType: 'System',
+        details: 'CMS database structure ready and initial content seeded',
+        timestamp: new Date().toISOString()
+    }
+];
 const seedSeo = [
     {
         path: '/',
@@ -170,7 +295,14 @@ const initialDb = {
     events: seedEvents,
     inquiries: seedInquiries,
     seoSettings: seedSeo,
-    siteSettings: defaultSiteSettings
+    siteSettings: defaultSiteSettings,
+    posts: seedPosts,
+    pages: seedPages,
+    homepageSections: seedHomepageSections,
+    navigationItems: seedNavigationItems,
+    media: [],
+    activityLog: seedActivityLog,
+    adminSessions: []
 };
 export class Database {
     static async ensureDir() {
@@ -189,7 +321,12 @@ export class Database {
             const data = JSON.parse(content);
             // Upgrade database schema dynamically if older keys are missing
             let upgraded = false;
-            const keys = ['users', 'subpersonalities', 'meditationLogs', 'journalEntries', 'courses', 'resources', 'blogs', 'registrations', 'events', 'inquiries', 'seoSettings', 'siteSettings'];
+            const keys = [
+                'users', 'subpersonalities', 'meditationLogs', 'journalEntries',
+                'courses', 'resources', 'blogs', 'registrations', 'events',
+                'inquiries', 'seoSettings', 'siteSettings', 'posts', 'pages',
+                'homepageSections', 'navigationItems', 'media', 'activityLog', 'adminSessions'
+            ];
             for (const key of keys) {
                 if (!data[key]) {
                     data[key] = initialDb[key] || [];

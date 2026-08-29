@@ -3,16 +3,85 @@ import cors from 'cors';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
+import crypto from 'crypto';
+import multer from 'multer';
+import path from 'path';
+import fsSync from 'fs';
+import { fileURLToPath } from 'url';
 import { Database } from './db.js';
 import { authenticateToken } from './middleware/auth.js';
+import { requireAdminSession, parseCookies } from './middleware/adminAuth.js';
 dotenv.config();
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 5000;
 const JWT_SECRET = process.env.JWT_SECRET || 'psychosynthesis_secret_key_123';
+const ADMIN_ACCESS_TOKEN = process.env.ADMIN_ACCESS_TOKEN || 'gip_sec_admin_token_913x99_7f8a9b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e';
 app.use(cors());
 app.use(express.json());
+// Set up static uploads folder
+const uploadsDir = path.join(__dirname, '..', 'uploads');
+try {
+    if (!fsSync.existsSync(uploadsDir)) {
+        fsSync.mkdirSync(uploadsDir, { recursive: true });
+    }
+}
+catch (err) {
+    console.error('Failed to create uploads directory:', err);
+}
+app.use('/uploads', express.static(uploadsDir));
+// Multer Storage for Media Uploads
+const storage = multer.diskStorage({
+    destination: (_req, _file, cb) => {
+        cb(null, uploadsDir);
+    },
+    filename: (_req, file, cb) => {
+        const ext = path.extname(file.originalname).toLowerCase();
+        const safeName = `img_${Date.now()}_${Math.random().toString(36).substring(2, 8)}${ext}`;
+        cb(null, safeName);
+    }
+});
+const upload = multer({
+    storage,
+    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+    fileFilter: (_req, file, cb) => {
+        const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml'];
+        const allowedExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.svg'];
+        const ext = path.extname(file.originalname).toLowerCase();
+        if (allowedMimeTypes.includes(file.mimetype) && allowedExtensions.includes(ext)) {
+            cb(null, true);
+        }
+        else {
+            cb(new Error('Invalid file type. Only JPEG, PNG, WEBP, GIF, and SVG images are allowed.'));
+        }
+    }
+});
 // Helper to generate IDs
 const generateId = () => Math.random().toString(36).substring(2, 15);
+// Activity Logger helper
+const logActivity = async (action, entityType, details, entityId) => {
+    try {
+        const db = await Database.read();
+        if (!db.activityLog)
+            db.activityLog = [];
+        db.activityLog.unshift({
+            id: generateId(),
+            action,
+            entityType,
+            entityId,
+            details,
+            timestamp: new Date().toISOString()
+        });
+        if (db.activityLog.length > 300) {
+            db.activityLog = db.activityLog.slice(0, 300);
+        }
+        await Database.write(db);
+    }
+    catch (err) {
+        console.error('Activity logging failed:', err);
+    }
+};
 // Admin validation middleware
 const requireAdmin = async (req, res, next) => {
     try {
@@ -70,6 +139,587 @@ const seedAdmin = async () => {
     }
 };
 seedAdmin();
+// --- SECRET ADMIN ACCESS & SESSION ENDPOINTS ---
+// Secret Admin Access URL Handler (e.g. /api/admin/access/:token)
+app.get('/api/admin/access/:token', async (req, res) => {
+    const { token } = req.params;
+    if (!token || token !== ADMIN_ACCESS_TOKEN) {
+        // Security Requirement: Return 404 Not Found if token is invalid
+        return res.status(404).json({ message: 'Not Found' });
+    }
+    try {
+        const db = await Database.read();
+        if (!db.adminSessions)
+            db.adminSessions = [];
+        const sessionToken = 'session_' + crypto.randomBytes(32).toString('hex');
+        const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+        db.adminSessions.push({
+            token: sessionToken,
+            createdAt: new Date().toISOString(),
+            expiresAt
+        });
+        await Database.write(db);
+        res.cookie('admin_session', sessionToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
+            maxAge: 24 * 60 * 60 * 1000,
+            path: '/'
+        });
+        await logActivity('Admin Login', 'Auth', 'Admin entered via secret URL token');
+        res.json({
+            success: true,
+            redirect: '/psychosynthesis/admin/dashboard',
+            sessionToken
+        });
+    }
+    catch (error) {
+        res.status(500).json({ message: 'Internal Server Error' });
+    }
+});
+// Admin Session Verification
+app.get('/api/admin/auth/verify', requireAdminSession, (req, res) => {
+    res.json({ success: true, authenticated: true, sessionToken: req.adminSessionToken });
+});
+// Admin Logout
+app.post('/api/admin/logout', async (req, res) => {
+    try {
+        const cookies = parseCookies(req.headers.cookie);
+        const authHeader = Array.isArray(req.headers['authorization']) ? req.headers['authorization'][0] : req.headers['authorization'];
+        const sessionToken = cookies['admin_session'] || (authHeader?.split(' ')[1]);
+        if (sessionToken) {
+            const db = await Database.read();
+            db.adminSessions = (db.adminSessions || []).filter(s => s.token !== sessionToken);
+            await Database.write(db);
+        }
+        res.clearCookie('admin_session', { path: '/' });
+        res.json({ success: true, message: 'Logged out successfully' });
+    }
+    catch (error) {
+        res.status(500).json({ message: 'Logout failed' });
+    }
+});
+// --- PUBLIC CMS ENDPOINTS ---
+// Public Posts Endpoint (filters out drafts and hidden posts)
+app.get('/api/posts', async (req, res) => {
+    try {
+        const { location, category, search, featured } = req.query;
+        const db = await Database.read();
+        let posts = (db.posts || []).filter(p => p.status === 'published');
+        if (location) {
+            const locStr = String(location).toLowerCase();
+            posts = posts.filter(p => p.displayLocations && p.displayLocations.some(l => l.toLowerCase() === locStr || l.toLowerCase().includes(locStr)));
+        }
+        if (category) {
+            posts = posts.filter(p => p.category.toLowerCase() === String(category).toLowerCase());
+        }
+        if (featured === 'true') {
+            posts = posts.filter(p => p.featured);
+        }
+        if (search) {
+            const q = String(search).toLowerCase();
+            posts = posts.filter(p => p.title.toLowerCase().includes(q) || p.shortDescription.toLowerCase().includes(q));
+        }
+        posts.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+        res.json(posts);
+    }
+    catch (error) {
+        res.status(500).json({ message: 'Error fetching posts' });
+    }
+});
+// Public Single Post Endpoint
+app.get('/api/posts/:slug', async (req, res) => {
+    try {
+        const { slug } = req.params;
+        const db = await Database.read();
+        const post = (db.posts || []).find(p => (p.slug === slug || p.id === slug) && p.status === 'published');
+        if (!post) {
+            return res.status(404).json({ message: 'Post not found' });
+        }
+        res.json(post);
+    }
+    catch (error) {
+        res.status(500).json({ message: 'Error fetching post' });
+    }
+});
+// Public Pages Endpoint (by slug)
+app.get('/api/pages/:slug', async (req, res) => {
+    try {
+        const { slug } = req.params;
+        const db = await Database.read();
+        const page = (db.pages || []).find(p => p.slug === slug && p.status === 'published');
+        if (!page) {
+            return res.status(404).json({ message: 'Page not found' });
+        }
+        res.json(page);
+    }
+    catch (error) {
+        res.status(500).json({ message: 'Error fetching page' });
+    }
+});
+// Public Homepage Sections Endpoint
+app.get('/api/homepage-sections', async (req, res) => {
+    try {
+        const db = await Database.read();
+        const sections = (db.homepageSections || [])
+            .filter(s => s.isVisible)
+            .sort((a, b) => a.sortOrder - b.sortOrder);
+        res.json(sections);
+    }
+    catch (error) {
+        res.status(500).json({ message: 'Error fetching homepage sections' });
+    }
+});
+// Public Navigation Endpoint
+app.get('/api/navigation', async (req, res) => {
+    try {
+        const db = await Database.read();
+        const nav = (db.navigationItems || [])
+            .filter(n => n.isVisible)
+            .sort((a, b) => a.sortOrder - b.sortOrder);
+        res.json(nav);
+    }
+    catch (error) {
+        res.status(500).json({ message: 'Error fetching navigation' });
+    }
+});
+// --- CMS ADMIN ENDPOINTS (PROTECTED BY ADMIN SESSION) ---
+// Dashboard Overview Statistics
+app.get('/api/admin/cms-overview', requireAdminSession, async (_req, res) => {
+    try {
+        const db = await Database.read();
+        const totalUsers = (db.users || []).length;
+        const publishedPosts = (db.posts || []).filter(p => p.status === 'published').length;
+        const draftPosts = (db.posts || []).filter(p => p.status === 'draft').length;
+        const totalPages = (db.pages || []).length;
+        const recentActivity = (db.activityLog || []).slice(0, 10);
+        const recentRegistrations = (db.registrations || []).slice(-5).reverse();
+        res.json({
+            totalUsers,
+            publishedPosts,
+            draftPosts,
+            totalPages,
+            recentActivity,
+            recentRegistrations
+        });
+    }
+    catch (error) {
+        res.status(500).json({ message: 'Error fetching overview' });
+    }
+});
+// 1. Posts Manager CRUD
+app.get('/api/admin/posts', requireAdminSession, async (_req, res) => {
+    try {
+        const db = await Database.read();
+        const posts = (db.posts || []).sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+        res.json(posts);
+    }
+    catch (error) {
+        res.status(500).json({ message: 'Error fetching admin posts' });
+    }
+});
+app.post('/api/admin/posts', requireAdminSession, async (req, res) => {
+    try {
+        const { title, slug, shortDescription, content, featuredImage, category, tags, author, status, featured, visibility, displayLocations, seoTitle, seoDescription } = req.body;
+        if (!title)
+            return res.status(400).json({ message: 'Title is required' });
+        const db = await Database.read();
+        if (!db.posts)
+            db.posts = [];
+        const autoSlug = (slug || title).toLowerCase().trim().replace(/[^\w\u0400-\u04FF\u10A0-\u10FF\s-]/g, '').replace(/\s+/g, '-');
+        const newPost = {
+            id: generateId(),
+            title,
+            slug: autoSlug || generateId(),
+            shortDescription: shortDescription || '',
+            content: content || '',
+            featuredImage: featuredImage || '',
+            category: category || 'General',
+            tags: Array.isArray(tags) ? tags : [],
+            author: author || 'Admin',
+            publishDate: new Date().toISOString(),
+            status: status || 'draft',
+            featured: !!featured,
+            visibility: visibility || 'public',
+            displayLocations: Array.isArray(displayLocations) ? displayLocations : ['articles'],
+            seoTitle: seoTitle || title,
+            seoDescription: seoDescription || shortDescription || '',
+            sortOrder: db.posts.length + 1,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+        };
+        db.posts.push(newPost);
+        await Database.write(db);
+        await logActivity('Post Created', 'Post', `Created post "${title}"`, newPost.id);
+        res.status(201).json(newPost);
+    }
+    catch (error) {
+        res.status(500).json({ message: 'Error creating post' });
+    }
+});
+app.put('/api/admin/posts/:id', requireAdminSession, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const db = await Database.read();
+        const idx = (db.posts || []).findIndex(p => p.id === id);
+        if (idx === -1)
+            return res.status(404).json({ message: 'Post not found' });
+        const updated = {
+            ...db.posts[idx],
+            ...req.body,
+            updatedAt: new Date().toISOString()
+        };
+        db.posts[idx] = updated;
+        await Database.write(db);
+        await logActivity('Post Updated', 'Post', `Updated post "${updated.title}"`, updated.id);
+        res.json(updated);
+    }
+    catch (error) {
+        res.status(500).json({ message: 'Error updating post' });
+    }
+});
+app.post('/api/admin/posts/:id/duplicate', requireAdminSession, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const db = await Database.read();
+        const original = (db.posts || []).find(p => p.id === id);
+        if (!original)
+            return res.status(404).json({ message: 'Post not found' });
+        const duplicated = {
+            ...original,
+            id: generateId(),
+            title: `${original.title} (Copy)`,
+            slug: `${original.slug}-copy-${Date.now().toString().slice(-4)}`,
+            status: 'draft',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+        };
+        db.posts.push(duplicated);
+        await Database.write(db);
+        await logActivity('Post Duplicated', 'Post', `Duplicated post "${original.title}"`, duplicated.id);
+        res.status(201).json(duplicated);
+    }
+    catch (error) {
+        res.status(500).json({ message: 'Error duplicating post' });
+    }
+});
+app.delete('/api/admin/posts/:id', requireAdminSession, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const db = await Database.read();
+        const idx = (db.posts || []).findIndex(p => p.id === id);
+        if (idx === -1)
+            return res.status(404).json({ message: 'Post not found' });
+        const postTitle = db.posts[idx].title;
+        db.posts.splice(idx, 1);
+        await Database.write(db);
+        await logActivity('Post Deleted', 'Post', `Deleted post "${postTitle}"`, String(id));
+        res.json({ success: true, message: 'Post deleted' });
+    }
+    catch (error) {
+        res.status(500).json({ message: 'Error deleting post' });
+    }
+});
+app.put('/api/admin/posts/reorder', requireAdminSession, async (req, res) => {
+    try {
+        const { orderedIds } = req.body;
+        if (!Array.isArray(orderedIds))
+            return res.status(400).json({ message: 'orderedIds array required' });
+        const db = await Database.read();
+        db.posts.forEach(p => {
+            const idx = orderedIds.indexOf(p.id);
+            if (idx !== -1)
+                p.sortOrder = idx + 1;
+        });
+        await Database.write(db);
+        await logActivity('Posts Reordered', 'Post', 'Updated display order for posts');
+        res.json({ success: true });
+    }
+    catch (error) {
+        res.status(500).json({ message: 'Error reordering posts' });
+    }
+});
+// 2. Pages Manager CRUD
+app.get('/api/admin/pages', requireAdminSession, async (_req, res) => {
+    try {
+        const db = await Database.read();
+        res.json(db.pages || []);
+    }
+    catch (error) {
+        res.status(500).json({ message: 'Error fetching pages' });
+    }
+});
+app.post('/api/admin/pages', requireAdminSession, async (req, res) => {
+    try {
+        const { title, slug, content, heroImage, seoTitle, seoDescription, status, navVisible } = req.body;
+        if (!title || !slug)
+            return res.status(400).json({ message: 'Title and slug required' });
+        const db = await Database.read();
+        if (!db.pages)
+            db.pages = [];
+        const cleanSlug = slug.toLowerCase().trim().replace(/[^\w-]/g, '');
+        const newPage = {
+            id: generateId(),
+            title,
+            slug: cleanSlug,
+            content: content || '',
+            heroImage: heroImage || '',
+            seoTitle: seoTitle || title,
+            seoDescription: seoDescription || '',
+            status: status || 'draft',
+            navVisible: navVisible !== undefined ? !!navVisible : true,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+        };
+        db.pages.push(newPage);
+        await Database.write(db);
+        await logActivity('Page Created', 'Page', `Created page "${title}" (${cleanSlug})`, newPage.id);
+        res.status(201).json(newPage);
+    }
+    catch (error) {
+        res.status(500).json({ message: 'Error creating page' });
+    }
+});
+app.put('/api/admin/pages/:id', requireAdminSession, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const db = await Database.read();
+        const idx = (db.pages || []).findIndex(p => p.id === id);
+        if (idx === -1)
+            return res.status(404).json({ message: 'Page not found' });
+        const updated = {
+            ...db.pages[idx],
+            ...req.body,
+            updatedAt: new Date().toISOString()
+        };
+        db.pages[idx] = updated;
+        await Database.write(db);
+        await logActivity('Page Updated', 'Page', `Updated page "${updated.title}"`, updated.id);
+        res.json(updated);
+    }
+    catch (error) {
+        res.status(500).json({ message: 'Error updating page' });
+    }
+});
+app.delete('/api/admin/pages/:id', requireAdminSession, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const db = await Database.read();
+        const idx = (db.pages || []).findIndex(p => p.id === id);
+        if (idx === -1)
+            return res.status(404).json({ message: 'Page not found' });
+        const pageTitle = db.pages[idx].title;
+        db.pages.splice(idx, 1);
+        await Database.write(db);
+        await logActivity('Page Deleted', 'Page', `Deleted page "${pageTitle}"`, String(id));
+        res.json({ success: true, message: 'Page deleted' });
+    }
+    catch (error) {
+        res.status(500).json({ message: 'Error deleting page' });
+    }
+});
+// 3. Homepage Sections Manager
+app.get('/api/admin/homepage-sections', requireAdminSession, async (_req, res) => {
+    try {
+        const db = await Database.read();
+        const sections = (db.homepageSections || []).sort((a, b) => a.sortOrder - b.sortOrder);
+        res.json(sections);
+    }
+    catch (error) {
+        res.status(500).json({ message: 'Error fetching sections' });
+    }
+});
+app.put('/api/admin/homepage-sections', requireAdminSession, async (req, res) => {
+    try {
+        const { sections } = req.body;
+        if (!Array.isArray(sections))
+            return res.status(400).json({ message: 'Sections array required' });
+        const db = await Database.read();
+        db.homepageSections = sections;
+        await Database.write(db);
+        await logActivity('Homepage Updated', 'Homepage', 'Updated homepage layout and sections');
+        res.json(db.homepageSections);
+    }
+    catch (error) {
+        res.status(500).json({ message: 'Error updating homepage sections' });
+    }
+});
+app.put('/api/admin/homepage-sections/reorder', requireAdminSession, async (req, res) => {
+    try {
+        const { orderedIds } = req.body;
+        if (!Array.isArray(orderedIds))
+            return res.status(400).json({ message: 'orderedIds array required' });
+        const db = await Database.read();
+        db.homepageSections.forEach(s => {
+            const idx = orderedIds.indexOf(s.id);
+            if (idx !== -1)
+                s.sortOrder = idx + 1;
+        });
+        await Database.write(db);
+        await logActivity('Homepage Reordered', 'Homepage', 'Reordered homepage sections');
+        res.json(db.homepageSections);
+    }
+    catch (error) {
+        res.status(500).json({ message: 'Error reordering sections' });
+    }
+});
+// 4. Navigation Manager
+app.get('/api/admin/navigation', requireAdminSession, async (_req, res) => {
+    try {
+        const db = await Database.read();
+        const nav = (db.navigationItems || []).sort((a, b) => a.sortOrder - b.sortOrder);
+        res.json(nav);
+    }
+    catch (error) {
+        res.status(500).json({ message: 'Error fetching navigation' });
+    }
+});
+app.put('/api/admin/navigation', requireAdminSession, async (req, res) => {
+    try {
+        const { items } = req.body;
+        if (!Array.isArray(items))
+            return res.status(400).json({ message: 'Items array required' });
+        const db = await Database.read();
+        db.navigationItems = items;
+        await Database.write(db);
+        await logActivity('Navigation Updated', 'Navigation', 'Updated header navigation menu items');
+        res.json(db.navigationItems);
+    }
+    catch (error) {
+        res.status(500).json({ message: 'Error updating navigation' });
+    }
+});
+app.put('/api/admin/navigation/reorder', requireAdminSession, async (req, res) => {
+    try {
+        const { orderedIds } = req.body;
+        if (!Array.isArray(orderedIds))
+            return res.status(400).json({ message: 'orderedIds array required' });
+        const db = await Database.read();
+        db.navigationItems.forEach(n => {
+            const idx = orderedIds.indexOf(n.id);
+            if (idx !== -1)
+                n.sortOrder = idx + 1;
+        });
+        await Database.write(db);
+        await logActivity('Navigation Reordered', 'Navigation', 'Reordered menu items');
+        res.json(db.navigationItems);
+    }
+    catch (error) {
+        res.status(500).json({ message: 'Error reordering navigation' });
+    }
+});
+// 5. Media Library Manager
+app.get('/api/admin/media', requireAdminSession, async (_req, res) => {
+    try {
+        const db = await Database.read();
+        res.json(db.media || []);
+    }
+    catch (error) {
+        res.status(500).json({ message: 'Error fetching media' });
+    }
+});
+app.post('/api/admin/media/upload', requireAdminSession, upload.single('image'), async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ message: 'No file uploaded' });
+        }
+        const fileUrl = `/uploads/${req.file.filename}`;
+        const db = await Database.read();
+        if (!db.media)
+            db.media = [];
+        const newMedia = {
+            id: generateId(),
+            filename: req.file.filename,
+            url: fileUrl,
+            mimeType: req.file.mimetype,
+            size: req.file.size,
+            altText: req.body.altText || req.file.originalname,
+            createdAt: new Date().toISOString()
+        };
+        db.media.unshift(newMedia);
+        await Database.write(db);
+        await logActivity('Media Uploaded', 'Media', `Uploaded image "${req.file.filename}"`, newMedia.id);
+        res.status(201).json(newMedia);
+    }
+    catch (error) {
+        res.status(400).json({ message: error.message || 'Media upload failed' });
+    }
+});
+app.delete('/api/admin/media/:id', requireAdminSession, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const db = await Database.read();
+        const idx = (db.media || []).findIndex(m => m.id === id);
+        if (idx === -1)
+            return res.status(404).json({ message: 'Media not found' });
+        const mediaItem = db.media[idx];
+        const filePath = path.join(uploadsDir, mediaItem.filename);
+        try {
+            if (fsSync.existsSync(filePath)) {
+                fsSync.unlinkSync(filePath);
+            }
+        }
+        catch (e) {
+            console.error('Error unlinking file:', e);
+        }
+        db.media.splice(idx, 1);
+        await Database.write(db);
+        await logActivity('Media Deleted', 'Media', `Deleted image "${mediaItem.filename}"`, String(id));
+        res.json({ success: true, message: 'Media deleted' });
+    }
+    catch (error) {
+        res.status(500).json({ message: 'Error deleting media' });
+    }
+});
+// 6. User Management (No passwords exposed)
+app.get('/api/admin/users', requireAdminSession, async (_req, res) => {
+    try {
+        const db = await Database.read();
+        const safeUsers = (db.users || []).map(u => ({
+            id: u.id,
+            username: u.username,
+            email: u.email || u.username,
+            name: u.name,
+            role: u.role || 'user',
+            status: u.status || 'active',
+            createdAt: u.createdAt || new Date().toISOString()
+        }));
+        res.json(safeUsers);
+    }
+    catch (error) {
+        res.status(500).json({ message: 'Error fetching users' });
+    }
+});
+app.put('/api/admin/users/:id/status', requireAdminSession, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { status } = req.body; // 'active' | 'disabled'
+        if (!['active', 'disabled'].includes(status)) {
+            return res.status(400).json({ message: 'Invalid status' });
+        }
+        const db = await Database.read();
+        const idx = (db.users || []).findIndex(u => u.id === id);
+        if (idx === -1)
+            return res.status(404).json({ message: 'User not found' });
+        db.users[idx].status = status;
+        await Database.write(db);
+        await logActivity('User Status Changed', 'User', `User "${db.users[idx].name}" set to ${status}`, String(id));
+        res.json({ id: db.users[idx].id, name: db.users[idx].name, status });
+    }
+    catch (error) {
+        res.status(500).json({ message: 'Error updating user status' });
+    }
+});
+// 7. Activity Log
+app.get('/api/admin/activity', requireAdminSession, async (_req, res) => {
+    try {
+        const db = await Database.read();
+        res.json(db.activityLog || []);
+    }
+    catch (error) {
+        res.status(500).json({ message: 'Error fetching activity log' });
+    }
+});
 // --- PUBLIC READ ENDPOINTS (CONNECTED TO DATABASE) ---
 app.get('/api/courses', async (req, res) => {
     try {
