@@ -36,9 +36,11 @@ export const SubpersonalityBuilder: React.FC<SubpersonalityBuilderProps> = ({ on
   const fetchSubpersonalities = async () => {
     try {
       const response = await api.get('/subpersonalities');
-      setSubpersonalities(response.data);
-      if (onSubpersonalitiesChange) {
-        onSubpersonalitiesChange(response.data);
+      if (response.data && Array.isArray(response.data)) {
+        setSubpersonalities(response.data);
+        if (onSubpersonalitiesChange) {
+          onSubpersonalitiesChange(response.data);
+        }
       }
     } catch (err: any) {
       console.error('Error fetching subpersonalities:', err);

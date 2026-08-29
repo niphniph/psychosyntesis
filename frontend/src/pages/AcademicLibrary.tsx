@@ -53,9 +53,9 @@ export const AcademicLibrary: React.FC = () => {
           api.get('/blogs'),
           api.get('/settings').catch(() => ({ data: null }))
         ]);
-        setCourses(coursesRes.data);
-        setResources(resourcesRes.data);
-        setBlogs(blogsRes.data);
+        if (coursesRes.data && Array.isArray(coursesRes.data)) setCourses(coursesRes.data);
+        if (resourcesRes.data && Array.isArray(resourcesRes.data)) setResources(resourcesRes.data);
+        if (blogsRes.data && Array.isArray(blogsRes.data)) setBlogs(blogsRes.data);
         if (settingsRes.data) {
           setSiteSettings(prev => ({ ...prev, ...settingsRes.data }));
         }

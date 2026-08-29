@@ -43,7 +43,7 @@ export const Dashboard: React.FC = () => {
   const fetchJournal = async () => {
     try {
       const response = await api.get('/journal');
-      setJournalEntries(response.data);
+      if (response.data && Array.isArray(response.data)) setJournalEntries(response.data);
     } catch (err) {
       console.error('Error fetching journal:', err);
     }
@@ -52,7 +52,7 @@ export const Dashboard: React.FC = () => {
   const fetchMeditationLogs = async () => {
     try {
       const response = await api.get('/meditation-logs');
-      setMeditationLogs(response.data);
+      if (response.data && Array.isArray(response.data)) setMeditationLogs(response.data);
     } catch (err) {
       console.error('Error fetching meditation logs:', err);
     }

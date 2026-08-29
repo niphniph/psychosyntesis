@@ -57,19 +57,19 @@ export const Home: React.FC<HomeProps> = ({ onNavigate, siteSettings }) => {
         api.get('/homepage-sections')
       ]);
 
-      if (postsRes.data) setCmsPosts(postsRes.data);
-      if (sectionsRes.data) setSections(sectionsRes.data);
+      if (postsRes.data && Array.isArray(postsRes.data)) setCmsPosts(postsRes.data);
+      if (sectionsRes.data && Array.isArray(sectionsRes.data)) setSections(sectionsRes.data);
     } catch (err) {
       console.error('Failed to load homepage CMS data', err);
     }
   };
 
-  const getSection = (key: string) => sections.find(s => s.sectionKey === key);
+  const getSection = (key: string) => Array.isArray(sections) ? sections.find(s => s.sectionKey === key) : undefined;
   const heroSec = getSection('hero');
   const introSec = getSection('intro');
   const ctaSec = getSection('cta');
 
-  const displayPosts = cmsPosts.filter(p => 
+  const displayPosts = (Array.isArray(cmsPosts) ? cmsPosts : []).filter(p => 
     p.displayLocations?.includes('homepage_featured') || 
     p.displayLocations?.includes('homepage_latest') || 
     p.displayLocations?.includes('featured') ||

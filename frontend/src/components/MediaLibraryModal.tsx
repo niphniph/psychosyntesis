@@ -41,7 +41,7 @@ export const MediaLibraryModal: React.FC<MediaLibraryModalProps> = ({
     setLoading(true);
     try {
       const res = await api.get('/admin/media');
-      if (res.data) setMediaList(res.data);
+      if (res.data && Array.isArray(res.data)) setMediaList(res.data);
     } catch (err) {
       console.error('Error fetching media list', err);
     } finally {
@@ -69,7 +69,7 @@ export const MediaLibraryModal: React.FC<MediaLibraryModalProps> = ({
       });
 
       if (res.data) {
-        setMediaList(prev => [res.data, ...prev]);
+        setMediaList(prev => Array.isArray(prev) ? [res.data, ...prev] : [res.data]);
         setSelectedUrl(res.data.url);
         setSelectedAlt(res.data.altText || '');
       }
@@ -85,8 +85,8 @@ export const MediaLibraryModal: React.FC<MediaLibraryModalProps> = ({
     if (!confirm('Are you sure you want to delete this media item?')) return;
     try {
       await api.delete(`/admin/media/${id}`);
-      setMediaList(prev => prev.filter(m => m.id !== id));
-      if (selectedUrl === mediaList.find(m => m.id === id)?.url) {
+      setMediaList(prev => Array.isArray(prev) ? prev.filter(m => m.id !== id) : []);
+      if (selectedUrl === (Array.isArray(mediaList) ? mediaList.find(m => m.id === id)?.url : undefined)) {
         setSelectedUrl(null);
       }
     } catch (err) {

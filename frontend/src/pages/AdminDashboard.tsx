@@ -207,7 +207,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
   const fetchPosts = async () => {
     try {
       const res = await api.get('/admin/posts');
-      if (res.data) setPosts(res.data);
+      if (res.data && Array.isArray(res.data)) setPosts(res.data);
     } catch (err) {
       console.error('Error fetching posts', err);
     }
@@ -216,7 +216,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
   const fetchPages = async () => {
     try {
       const res = await api.get('/admin/pages');
-      if (res.data) setPages(res.data);
+      if (res.data && Array.isArray(res.data)) setPages(res.data);
     } catch (err) {
       console.error('Error fetching pages', err);
     }
@@ -225,7 +225,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
   const fetchSections = async () => {
     try {
       const res = await api.get('/admin/homepage-sections');
-      if (res.data) setSections(res.data);
+      if (res.data && Array.isArray(res.data)) setSections(res.data);
     } catch (err) {
       console.error('Error fetching homepage sections', err);
     }
@@ -234,7 +234,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
   const fetchNavigation = async () => {
     try {
       const res = await api.get('/admin/navigation');
-      if (res.data) setNavigationItems(res.data);
+      if (res.data && Array.isArray(res.data)) setNavigationItems(res.data);
     } catch (err) {
       console.error('Error fetching navigation', err);
     }
@@ -243,7 +243,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
   const fetchMedia = async () => {
     try {
       const res = await api.get('/admin/media');
-      if (res.data) setMediaList(res.data);
+      if (res.data && Array.isArray(res.data)) setMediaList(res.data);
     } catch (err) {
       console.error('Error fetching media', err);
     }
@@ -252,7 +252,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
   const fetchUsers = async () => {
     try {
       const res = await api.get('/admin/users');
-      if (res.data) setUsers(res.data);
+      if (res.data && Array.isArray(res.data)) setUsers(res.data);
     } catch (err) {
       console.error('Error fetching users', err);
     }
@@ -270,7 +270,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
   const fetchActivity = async () => {
     try {
       const res = await api.get('/admin/activity');
-      if (res.data) setActivityLogs(res.data);
+      if (res.data && Array.isArray(res.data)) setActivityLogs(res.data);
     } catch (err) {
       console.error('Error fetching activity', err);
     }
