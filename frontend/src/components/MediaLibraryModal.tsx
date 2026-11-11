@@ -53,8 +53,8 @@ export const MediaLibraryModal: React.FC<MediaLibraryModalProps> = ({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 5 * 1024 * 1024) {
-      setErrorMsg('File size must be less than 5MB');
+    if (file.size > 10 * 1024 * 1024) {
+      setErrorMsg('ფაილის ზომა არ უნდა აღემატებოდეს 10MB-ს');
       return;
     }
 
@@ -102,7 +102,7 @@ export const MediaLibraryModal: React.FC<MediaLibraryModalProps> = ({
   );
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
       <div className="bg-[#0b251c] border border-[#c7a85b]/30 rounded-3xl max-w-4xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
         {/* Modal Header */}
         <div className="p-6 border-b border-[#c7a85b]/20 flex justify-between items-center bg-[#00241a]">
@@ -143,7 +143,7 @@ export const MediaLibraryModal: React.FC<MediaLibraryModalProps> = ({
             <label className="bg-[#c7a85b] hover:bg-[#ffdf95] text-[#00241a] font-bold text-xs px-5 py-2.5 rounded-xl cursor-pointer transition-all flex items-center justify-center gap-2 shadow-lg">
               <Upload size={16} />
               {uploading ? 'იტვირთება...' : 'ახალი სურათის ატვირთვა'}
-              <input type="file" accept="image/*" onChange={handleFileUpload} className="hidden" disabled={uploading} />
+              <input type="file" accept="image/*,application/pdf" onChange={handleFileUpload} className="hidden" disabled={uploading} />
             </label>
           </div>
 
@@ -181,11 +181,18 @@ export const MediaLibraryModal: React.FC<MediaLibraryModalProps> = ({
                         : 'border-white/10 hover:border-[#c7a85b]/50'
                     }`}
                   >
-                    <img
-                      src={item.url}
-                      alt={item.altText || item.filename}
-                      className="w-full h-full object-cover"
-                    />
+                    {item.mimeType === 'application/pdf' ? (
+                      <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-[#00241a] text-[#c7a85b] text-xs font-bold">
+                        <span className="text-3xl">PDF</span>
+                        <span className="text-[10px] text-white/60 px-2 truncate max-w-full">{item.altText || item.filename}</span>
+                      </div>
+                    ) : (
+                      <img
+                        src={item.url}
+                        alt={item.altText || item.filename}
+                        className="w-full h-full object-cover"
+                      />
+                    )}
 
                     {/* Selected Badge */}
                     {isSelected && (

@@ -51,6 +51,9 @@ export interface Course {
   category: string;
   difficulty: string;
   modules: string[];
+  imageUrl?: string;
+  price?: string;
+  sortOrder?: number;
 }
 
 export interface LibraryResource {
@@ -60,6 +63,9 @@ export interface LibraryResource {
   type: string;
   year: string;
   description: string;
+  fileUrl?: string;
+  imageUrl?: string;
+  sortOrder?: number;
 }
 
 export interface Blog {
@@ -67,7 +73,9 @@ export interface Blog {
   title: string;
   content: string;
   author: string;
+  imageUrl?: string;
   createdAt: string;
+  sortOrder?: number;
 }
 
 export interface Registration {
@@ -87,6 +95,15 @@ export interface Event {
   time: string; // e.g. "15:00"
   location: string;
   category: 'online' | 'onsite';
+  isoDate?: string; // YYYY-MM-DD, used by the public calendar
+  description?: string;
+  imageUrl?: string;
+  price?: string;
+  badge?: string;
+  trainer?: string;
+  ctaText?: string;
+  featured?: boolean;
+  sortOrder?: number;
 }
 
 export interface Inquiry {
@@ -106,6 +123,8 @@ export interface SeoSetting {
 }
 
 export interface SiteSettings {
+  // Any additional editable text/image key managed from the admin "Site content" editor
+  [key: string]: string;
   siteTitle: string;
   navHome: string;
   navAboutDropdown: string;
@@ -209,6 +228,7 @@ export interface Page {
   id: string;
   title: string;
   slug: string;
+  subtitle?: string;
   content: string;
   heroImage?: string;
   seoTitle?: string;
@@ -265,6 +285,7 @@ export interface ActivityLogItem {
 
 export interface AdminSession {
   token: string;
+  userId?: string;
   createdAt: string;
   expiresAt: string;
 }
@@ -518,7 +539,9 @@ const seedHomepageSections: HomepageSection[] = [
 const seedNavigationItems: NavigationItem[] = [
   { id: 'nav-1', label: 'მთავარი', url: '/', isExternal: false, isVisible: true, sortOrder: 1 },
   { id: 'nav-2', label: 'ჩვენ შესახებ', url: '/#about-philosophy', isExternal: false, isVisible: true, sortOrder: 2 },
-  { id: 'nav-3', label: 'დამფუძნებელი', url: '/founder', isExternal: false, isVisible: true, sortOrder: 3 },
+  { id: 'nav-2a', label: 'ინსტიტუტის ისტორია', url: '/#about-philosophy', isExternal: false, isVisible: true, sortOrder: 1, parentId: 'nav-2' },
+  { id: 'nav-2b', label: 'დამფუძნებელი', url: '/founder', isExternal: false, isVisible: true, sortOrder: 2, parentId: 'nav-2' },
+  { id: 'nav-3', label: 'ფსიქოსინთეზის შესახებ', url: '/#about-philosophy', isExternal: false, isVisible: true, sortOrder: 3 },
   { id: 'nav-4', label: 'აკადემიური პორტალი', url: '/academic', isExternal: false, isVisible: true, sortOrder: 4 },
   { id: 'nav-5', label: 'რესურსები', url: '/resources', isExternal: false, isVisible: true, sortOrder: 5 },
   { id: 'nav-6', label: 'ღონისძიებები', url: '/events', isExternal: false, isVisible: true, sortOrder: 6 }

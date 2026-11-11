@@ -1,23 +1,10 @@
 import React, { useEffect, useState } from 'react';
+import { useSite } from '../content/SiteContext';
 import { ArrowDown, ArrowUpRight, CheckCircle2, Award, BookOpen, GraduationCap } from 'lucide-react';
 
 export const Founder: React.FC = () => {
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
-  const [siteSettings, setSiteSettings] = useState({
-    founderTitle: 'დოქტორი ელენე კვანტალიანი',
-    founderSubtitle: '"ფსიქოსინთეზი არ არის მხოლოდ თერაპიული მეთოდი, ეს არის გზა საკუთარი თავის აღმოჩენისა და სულის მთლიანობისკენ."',
-    founderBioText: 'დოქტორი ელენე კვანტალიანი არის ინსტიტუტის დამფუძნებელი და წამყვანი ფსიქოთერაპევტი.',
-    navTrainers: 'ტრენერები & აკადემიური გუნდი',
-    trainersText: 'ჩვენი აკადემიური გუნდი შედგება სერტიფიცირებული ფსიქოლოგებისა და თერაპევტებისგან.'
-  });
-
-  useEffect(() => {
-    import('../api').then(module => {
-      module.default.get('/settings').then(res => {
-        if (res.data) setSiteSettings(prev => ({ ...prev, ...res.data }));
-      }).catch(() => {});
-    });
-  }, []);
+  const { t, lines, go } = useSite();
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
@@ -56,15 +43,15 @@ export const Founder: React.FC = () => {
           <div className="lg:col-span-7 space-y-8 animate-fade-in">
             <div className="space-y-4">
               <span className="font-label-md text-label-md text-tertiary-fixed uppercase tracking-[0.2em] border-b border-tertiary-container/30 pb-2 w-max block">
-                დამფუძნებელი &amp; დირექტორი
+                {t('founderLabel')}
               </span>
               <h1 className="font-display-lg text-display-lg-mobile md:text-display-lg text-surface-bright leading-tight">
-                {siteSettings.founderTitle}
+                {t('founderTitle')}
               </h1>
             </div>
             
             <p className="font-quote-editorial text-quote-editorial text-surface-variant/90 max-w-2xl italic border-l-2 border-tertiary-fixed pl-6 leading-relaxed">
-              {siteSettings.founderSubtitle}
+              {t('founderSubtitle')}
             </p>
             
             <div className="pt-4">
@@ -72,7 +59,7 @@ export const Founder: React.FC = () => {
                 onClick={scrollToBiography}
                 className="px-8 py-4 bg-tertiary text-on-tertiary hover:bg-tertiary-container hover:text-on-tertiary-container rounded-xl font-label-md text-label-md flex items-center gap-2 transition-all duration-300 shadow-lg active:scale-95 group"
               >
-                ბიოგრაფია 
+                {t('founderBioButton')}
                 <ArrowDown size={16} className="group-hover:translate-y-1 transition-transform" />
               </button>
             </div>
@@ -84,8 +71,8 @@ export const Founder: React.FC = () => {
             <div className="relative rounded-2xl overflow-hidden shadow-2xl aspect-[4/5] bg-primary-container border border-white/10">
               <img 
                 className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-700 scale-100 group-hover:scale-105" 
-                alt="Dr. Elene Kvantaliani - Founder of Psychosynthesis Institute" 
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuBdQndCelLkyiMEVVXT1eGOx40fLP5fHdm94PBem1bdfwGkCeIJ_KSj-3bscwLsivXqvLt-Oip751jfTKBRktTfrUL5aup2zT593qr7_0wQk0rpVlvJxNlsdqEB_lQKbqmbTm8_-V3oi-WTNTPD4R_1RYMcwi1jiBJXcdpbavJwUyqtXY6Ye3GkGBa031IJo690oHKNLN4h_sWfokG5CXkCgeqQeJTregJMmbl8s8yr0Z5JDcKSYiS4"
+                alt={t('founderTitle')}
+                src={t('founderImage')}
               />
             </div>
           </div>
@@ -98,18 +85,13 @@ export const Founder: React.FC = () => {
           {/* Main Narrative */}
           <div className="lg:col-span-8 space-y-8">
             <h2 className="font-headline-lg text-headline-lg text-tertiary-container">
-              აკადემიური გზა და ხედვა
+              {t('founderBioHeading')}
             </h2>
             <div className="space-y-6 text-surface-variant/90 font-body-lg text-body-lg leading-relaxed">
               <p className="bg-white/[0.03] p-6 rounded-2xl border border-tertiary-container/20 shadow-sm text-surface-bright">
-                {siteSettings.founderBioText}
+                {t('founderBioText')}
               </p>
-              <p>
-                დოქტორი ელენე კვანტალიანი არის ფსიქოლოგიის მეცნიერებათა დოქტორი და საქართველოში ფსიქოსინთეზის მიდგომის ერთ-ერთი წამყვანი პიონერი. მისი მოღვაწეობა მოიცავს ორ ათწლეულზე მეტს აკადემიურ კვლევებსა და კლინიკურ პრაქტიკაში, რაც საფუძვლად დაედო ინსტიტუტის ჩამოყალიბებას.
-              </p>
-              <p>
-                დღეს ელენე ხელმძღვანელობს ინსტიტუტის სასწავლო პროგრამებს და აგრძელებს აქტიურ მუშაობას ახალი თაობის ფსიქოლოგების მომზადებაზე, რომლებსაც სწამთ, რომ თერაპია არა მხოლოდ სიმპტომების მკურნალობა, არამედ პიროვნული ზრდის უწყვეტი პროცესია.
-              </p>
+              <div className="cms-content" dangerouslySetInnerHTML={{ __html: t('founderBioBody') }} />
             </div>
           </div>
 
@@ -118,21 +100,15 @@ export const Founder: React.FC = () => {
             <div className="bg-white/[0.02] p-8 rounded-2xl border border-tertiary-container/10 space-y-8 backdrop-blur-sm">
               <div className="space-y-4">
                 <h3 className="font-label-md text-label-md text-tertiary-container uppercase tracking-widest text-xs">
-                  სპეციალიზაცია
+                  {t('founderSpecTitle')}
                 </h3>
                 <ul className="space-y-3 font-body-md text-surface-variant/95">
-                  <li className="flex items-center gap-3">
-                    <CheckCircle2 size={16} className="text-tertiary-container shrink-0" />
-                    <span>კლინიკური ფსიქოსინთეზი</span>
-                  </li>
-                  <li className="flex items-center gap-3">
-                    <CheckCircle2 size={16} className="text-tertiary-container shrink-0" />
-                    <span>ტრანსპერსონალური თერაპია</span>
-                  </li>
-                  <li className="flex items-center gap-3">
-                    <CheckCircle2 size={16} className="text-tertiary-container shrink-0" />
-                    <span>კრიზისული ინტერვენცია</span>
-                  </li>
+                  {lines('founderSpecList').map((item, idx) => (
+                    <li key={idx} className="flex items-center gap-3">
+                      <CheckCircle2 size={16} className="text-tertiary-container shrink-0" />
+                      <span>{item}</span>
+                    </li>
+                  ))}
                 </ul>
               </div>
               
@@ -140,10 +116,10 @@ export const Founder: React.FC = () => {
               
               <div className="space-y-3">
                 <h3 className="font-label-md text-label-md text-tertiary-container uppercase tracking-widest text-xs">
-                  ენები
+                  {t('founderLangTitle')}
                 </h3>
                 <p className="text-surface-variant font-body-md">
-                  ქართული, ინგლისური, გერმანული, რუსული
+                  {t('founderLanguages')}
                 </p>
               </div>
             </div>
@@ -156,10 +132,10 @@ export const Founder: React.FC = () => {
         <div className="space-y-12">
           <div className="space-y-2">
             <h2 className="font-headline-lg text-headline-lg text-tertiary-container">
-              აკადემიური მიღწევები
+              {t('founderAchTitle')}
             </h2>
             <p className="text-surface-variant/70 font-body-md">
-              პუბლიკაციები, კვლევები და აღიარება
+              {t('founderAchSubtitle')}
             </p>
           </div>
 
@@ -168,19 +144,19 @@ export const Founder: React.FC = () => {
             <div className="md:col-span-2 bg-white/[0.03] border border-tertiary-container/10 p-10 rounded-2xl flex flex-col justify-between min-h-[320px] transition-all duration-300 hover:bg-white/[0.05] hover:border-tertiary-container/30 hover:-translate-y-1">
               <div>
                 <span className="font-label-md text-label-md text-tertiary-container mb-4 block">
-                  2022 • მონოგრაფია
+                  {t('ach1Meta')}
                 </span>
                 <h3 className="font-headline-md text-headline-md text-surface-bright mb-4">
-                  "სულის რუკა: ფსიქოსინთეზის თანამედროვე ასპექტები"
+                  {t('ach1Title')}
                 </h3>
                 <p className="text-surface-variant/80 font-body-md leading-relaxed">
-                  ინოვაციური ნაშრომი, რომელიც აერთიანებს კლასიკურ ფსიქოლოგიასა და თანამედროვე ნეირომეცნიერებას პიროვნული განვითარების კონტექსტში.
+                  {t('ach1Text')}
                 </p>
               </div>
-              <div className="flex items-center gap-2 text-tertiary-container font-label-md hover:text-tertiary-fixed cursor-pointer w-max transition-colors pt-6">
-                <span>წაიკითხეთ მიმოხილვა</span>
+              {t('ach1LinkText') && <div onClick={() => t('ach1Link') && go(t('ach1Link'))} className="flex items-center gap-2 text-tertiary-container font-label-md hover:text-tertiary-fixed cursor-pointer w-max transition-colors pt-6">
+                <span>{t('ach1LinkText')}</span>
                 <ArrowUpRight size={16} />
-              </div>
+              </div>}
             </div>
 
             {/* Small Card 1 */}
@@ -190,10 +166,10 @@ export const Founder: React.FC = () => {
                   <GraduationCap size={24} />
                 </div>
                 <h4 className="font-headline-md text-lg text-surface-bright">
-                  ევროპული სერთიფიკაცია
+                  {t('ach2Title')}
                 </h4>
                 <p className="font-body-md text-sm text-surface-variant/70">
-                  EAP-ის მიერ აკრედიტებული ფსიქოთერაპევტი (2015 წლიდან)
+                  {t('ach2Text')}
                 </p>
               </div>
             </div>
@@ -205,10 +181,10 @@ export const Founder: React.FC = () => {
                   <Award size={24} />
                 </div>
                 <h4 className="font-headline-md text-lg text-surface-bright">
-                  წლის მკვლევარი
+                  {t('ach3Title')}
                 </h4>
                 <p className="font-body-md text-sm text-surface-variant/70">
-                  ეროვნული სამეცნიერო ფონდის ჯილდო ჰუმანიტარულ დარგში (2019)
+                  {t('ach3Text')}
                 </p>
               </div>
             </div>
@@ -220,10 +196,10 @@ export const Founder: React.FC = () => {
               </div>
               <div className="space-y-1">
                 <h4 className="font-headline-md text-lg text-surface-bright">
-                  45+ სამეცნიერო პუბლიკაცია
+                  {t('ach4Title')}
                 </h4>
                 <p className="font-body-md text-surface-variant/70 text-sm leading-relaxed">
-                  საერთაშორისო რეცენზირებად ჟურნალებში გამოქვეყნებული სტატიები ფსიქოთერაპიის ეფექტურობის შესახებ.
+                  {t('ach4Text')}
                 </p>
               </div>
             </div>
@@ -235,16 +211,14 @@ export const Founder: React.FC = () => {
       <section className="py-12 relative z-10 border-t border-white/5 text-left space-y-6" id="trainers">
         <div className="space-y-2">
           <span className="font-label-md text-xs text-tertiary-fixed uppercase tracking-[0.2em] block">
-            ინსტიტუტის პედაგოგები &amp; თერაპევტები
+            {t('founderTrainersLabel')}
           </span>
           <h2 className="font-headline-lg text-2xl md:text-3xl text-tertiary-container">
-            {siteSettings.navTrainers || 'ტრენერები & აკადემიური გუნდი'}
+            {t('founderTrainersTitle')}
           </h2>
         </div>
         <div className="bg-white/[0.03] border border-tertiary-container/20 p-8 rounded-2xl space-y-4">
-          <p className="text-surface-bright font-body-lg leading-relaxed">
-            {siteSettings.trainersText}
-          </p>
+          <div className="cms-content text-surface-bright font-body-lg leading-relaxed" dangerouslySetInnerHTML={{ __html: t('trainersText') }} />
         </div>
       </section>
 
@@ -255,7 +229,7 @@ export const Founder: React.FC = () => {
         <span className="text-6xl text-tertiary-container font-display-lg opacity-30 block select-none">“</span>
         
         <blockquote className="font-display-lg text-quote-editorial md:text-display-lg-mobile lg:text-3xl text-surface-bright leading-snug italic text-balance">
-          ჩვენი მიზანია არა მხოლოდ განკურნება, არამედ ადამიანის შინაგანი სინათლისა და პოტენციალის გააქტიურება.
+          {t('founderQuote')}
         </blockquote>
         
         <div className="pt-4">

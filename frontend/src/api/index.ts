@@ -1,6 +1,7 @@
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || (typeof window !== 'undefined' && window.location.hostname !== 'localhost' ? '/api' : 'http://localhost:5000/api');
+// In development Vite proxies /api and /uploads to the backend (see vite.config.ts)
+const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 const api = axios.create({
   baseURL: API_URL,
@@ -9,12 +10,18 @@ const api = axios.create({
   },
 });
 
-// Automatically inject JWT token into requests
+export const ADMIN_TOKEN_KEY = 'adminToken';
+
+// Automatically inject the user JWT and the admin session token into requests
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
+    }
+    const adminToken = localStorage.getItem(ADMIN_TOKEN_KEY);
+    if (adminToken && config.headers) {
+      config.headers['X-Admin-Token'] = adminToken;
     }
     return config;
   },

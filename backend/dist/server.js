@@ -10,16 +10,16 @@ import fsSync from 'fs';
 import { fileURLToPath } from 'url';
 import { Database } from './db.js';
 import { authenticateToken } from './middleware/auth.js';
-import { requireAdminSession, parseCookies } from './middleware/adminAuth.js';
+import { requireAdminSession, getAdminTokenCandidates } from './middleware/adminAuth.js';
 dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 5000;
 const JWT_SECRET = process.env.JWT_SECRET || 'psychosynthesis_secret_key_123';
-const ADMIN_ACCESS_TOKEN = process.env.ADMIN_ACCESS_TOKEN || 'gip_sec_admin_token_913x99_7f8a9b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e';
+const ADMIN_ACCESS_TOKEN = process.env.ADMIN_ACCESS_TOKEN || 'gip_sec_admin_token_2026_913x99_a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1';
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 // Set up static uploads folder
 const uploadsDir = path.join(__dirname, '..', 'uploads');
 try {
@@ -44,16 +44,16 @@ const storage = multer.diskStorage({
 });
 const upload = multer({
     storage,
-    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+    limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
     fileFilter: (_req, file, cb) => {
-        const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml'];
-        const allowedExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.svg'];
+        const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml', 'application/pdf'];
+        const allowedExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.svg', '.pdf'];
         const ext = path.extname(file.originalname).toLowerCase();
         if (allowedMimeTypes.includes(file.mimetype) && allowedExtensions.includes(ext)) {
             cb(null, true);
         }
         else {
-            cb(new Error('Invalid file type. Only JPEG, PNG, WEBP, GIF, and SVG images are allowed.'));
+            cb(new Error('დაშვებულია მხოლოდ JPEG, PNG, WEBP, GIF, SVG სურათები და PDF ფაილები.'));
         }
     }
 });
@@ -82,21 +82,28 @@ const logActivity = async (action, entityType, details, entityId) => {
         console.error('Activity logging failed:', err);
     }
 };
-// Admin validation middleware
-const requireAdmin = async (req, res, next) => {
-    try {
-        const db = await Database.read();
-        const user = db.users.find(u => u.id === req.userId);
-        if (!user || user.role !== 'admin') {
-            return res.status(403).json({ message: 'წვდომა უარყოფილია (საჭიროა ადმინისტრატორის უფლებები)' });
-        }
-        next();
-    }
-    catch (error) {
-        res.status(500).json({ message: 'ადმინისტრატორის შემოწმების შეცდომა' });
-    }
+const createAdminSession = async (userId) => {
+    const db = await Database.read();
+    if (!db.adminSessions)
+        db.adminSessions = [];
+    const now = new Date().toISOString();
+    const sessionToken = 'session_' + crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+    db.adminSessions = db.adminSessions.filter(s => !s.expiresAt || s.expiresAt >= now);
+    db.adminSessions.push({ token: sessionToken, userId, createdAt: now, expiresAt });
+    await Database.write(db);
+    return sessionToken;
 };
-// Seed 3 administrator accounts if they don't exist or ensure credentials
+const setAdminCookie = (res, sessionToken) => {
+    res.cookie('admin_session', sessionToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 24 * 60 * 60 * 1000,
+        path: '/'
+    });
+};
+// Seed 3 administrator accounts if they don't exist (existing passwords are never reset)
 const seedAdmin = async () => {
     try {
         const db = await Database.read();
@@ -108,30 +115,21 @@ const seedAdmin = async () => {
         let modified = false;
         for (const a of adminsToSeed) {
             const exists = db.users.find(u => u.username && u.username.toLowerCase() === a.username.toLowerCase());
-            const salt = await bcrypt.genSalt(10);
-            const passwordHash = await bcrypt.hash('admin123', salt);
             if (!exists) {
+                const salt = await bcrypt.genSalt(10);
                 db.users.push({
                     id: a.id,
                     username: a.username,
-                    passwordHash,
+                    passwordHash: await bcrypt.hash('admin123', salt),
                     name: a.name,
                     role: 'admin'
                 });
                 modified = true;
             }
-            else {
-                const isMatch = await bcrypt.compare('admin123', exists.passwordHash || '');
-                if (!isMatch || exists.role !== 'admin') {
-                    exists.role = 'admin';
-                    exists.passwordHash = passwordHash;
-                    modified = true;
-                }
-            }
         }
         if (modified) {
             await Database.write(db);
-            console.log('3 Administrator accounts verified: admin, admin2, admin3 (password: admin123)');
+            console.log('Missing administrator accounts created (default password: admin123 — change it in the admin panel)');
         }
     }
     catch (error) {
@@ -148,24 +146,8 @@ app.get('/api/admin/access/:token', async (req, res) => {
         return res.status(404).json({ message: 'Not Found' });
     }
     try {
-        const db = await Database.read();
-        if (!db.adminSessions)
-            db.adminSessions = [];
-        const sessionToken = 'session_' + crypto.randomBytes(32).toString('hex');
-        const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
-        db.adminSessions.push({
-            token: sessionToken,
-            createdAt: new Date().toISOString(),
-            expiresAt
-        });
-        await Database.write(db);
-        res.cookie('admin_session', sessionToken, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'strict',
-            maxAge: 24 * 60 * 60 * 1000,
-            path: '/'
-        });
+        const sessionToken = await createAdminSession();
+        setAdminCookie(res, sessionToken);
         await logActivity('Admin Login', 'Auth', 'Admin entered via secret URL token');
         res.json({
             success: true,
@@ -177,19 +159,68 @@ app.get('/api/admin/access/:token', async (req, res) => {
         res.status(500).json({ message: 'Internal Server Error' });
     }
 });
+// Admin username/password login (accounts with role "admin")
+app.post('/api/admin/login', async (req, res) => {
+    try {
+        const { username, password } = req.body || {};
+        const identifier = String(username || '').trim().toLowerCase();
+        if (!identifier || !password) {
+            return res.status(400).json({ message: 'შეიყვანეთ მომხმარებელი და პაროლი' });
+        }
+        const db = await Database.read();
+        const user = db.users.find(u => ((u.username && u.username.toLowerCase() === identifier) || (u.email && u.email.toLowerCase() === identifier)) &&
+            u.role === 'admin' && u.status !== 'disabled');
+        if (!user || !(await bcrypt.compare(String(password), user.passwordHash || ''))) {
+            return res.status(401).json({ message: 'მომხმარებელი ან პაროლი არასწორია' });
+        }
+        const sessionToken = await createAdminSession(user.id);
+        setAdminCookie(res, sessionToken);
+        await logActivity('Admin Login', 'Auth', `${user.name} შევიდა ადმინ პანელში`, user.id);
+        res.json({ success: true, sessionToken, user: { id: user.id, name: user.name, username: user.username } });
+    }
+    catch (error) {
+        res.status(500).json({ message: 'Internal Server Error' });
+    }
+});
 // Admin Session Verification
-app.get('/api/admin/auth/verify', requireAdminSession, (req, res) => {
-    res.json({ success: true, authenticated: true, sessionToken: req.adminSessionToken });
+app.get('/api/admin/auth/verify', requireAdminSession, async (req, res) => {
+    const db = await Database.read();
+    const user = db.users.find(u => u.id === req.adminUserId);
+    res.json({
+        success: true,
+        authenticated: true,
+        user: user ? { id: user.id, name: user.name, username: user.username } : null
+    });
+});
+// Change the password of the logged-in admin
+app.post('/api/admin/change-password', requireAdminSession, async (req, res) => {
+    try {
+        const { currentPassword, newPassword } = req.body || {};
+        if (!req.adminUserId)
+            return res.status(400).json({ message: 'ეს სესია მომხმარებელს არ უკავშირდება — შედით მომხმარებლით და პაროლით' });
+        if (!newPassword || String(newPassword).length < 6)
+            return res.status(400).json({ message: 'ახალი პაროლი უნდა იყოს მინიმუმ 6 სიმბოლო' });
+        const db = await Database.read();
+        const user = db.users.find(u => u.id === req.adminUserId);
+        if (!user || !(await bcrypt.compare(String(currentPassword || ''), user.passwordHash || ''))) {
+            return res.status(400).json({ message: 'მიმდინარე პაროლი არასწორია' });
+        }
+        user.passwordHash = await bcrypt.hash(String(newPassword), await bcrypt.genSalt(10));
+        await Database.write(db);
+        await logActivity('Password Changed', 'Auth', `${user.name} შეცვალა პაროლი`, user.id);
+        res.json({ success: true });
+    }
+    catch (error) {
+        res.status(500).json({ message: 'პაროლის შეცვლის შეცდომა' });
+    }
 });
 // Admin Logout
 app.post('/api/admin/logout', async (req, res) => {
     try {
-        const cookies = parseCookies(req.headers.cookie);
-        const authHeader = Array.isArray(req.headers['authorization']) ? req.headers['authorization'][0] : req.headers['authorization'];
-        const sessionToken = cookies['admin_session'] || (authHeader?.split(' ')[1]);
-        if (sessionToken) {
+        const candidates = getAdminTokenCandidates(req);
+        if (candidates.length) {
             const db = await Database.read();
-            db.adminSessions = (db.adminSessions || []).filter(s => s.token !== sessionToken);
+            db.adminSessions = (db.adminSessions || []).filter(s => !candidates.includes(s.token));
             await Database.write(db);
         }
         res.clearCookie('admin_session', { path: '/' });
@@ -294,13 +325,17 @@ app.get('/api/admin/cms-overview', requireAdminSession, async (_req, res) => {
         const totalPages = (db.pages || []).length;
         const recentActivity = (db.activityLog || []).slice(0, 10);
         const recentRegistrations = (db.registrations || []).slice(-5).reverse();
+        const unreadInquiries = (db.inquiries || []).filter(i => i.status !== 'read').length;
+        const pendingRegistrations = (db.registrations || []).filter(r => r.status === 'pending').length;
         res.json({
             totalUsers,
             publishedPosts,
             draftPosts,
             totalPages,
             recentActivity,
-            recentRegistrations
+            recentRegistrations,
+            unreadInquiries,
+            pendingRegistrations
         });
     }
     catch (error) {
@@ -618,7 +653,9 @@ app.get('/api/admin/media', requireAdminSession, async (_req, res) => {
         res.status(500).json({ message: 'Error fetching media' });
     }
 });
-app.post('/api/admin/media/upload', requireAdminSession, upload.single('image'), async (req, res) => {
+app.post('/api/admin/media/upload', requireAdminSession, (req, res, next) => {
+    upload.single('image')(req, res, (err) => err ? res.status(400).json({ message: err.message || 'ატვირთვის შეცდომა' }) : next());
+}, async (req, res) => {
     try {
         if (!req.file) {
             return res.status(400).json({ message: 'No file uploaded' });
@@ -669,6 +706,21 @@ app.delete('/api/admin/media/:id', requireAdminSession, async (req, res) => {
     }
     catch (error) {
         res.status(500).json({ message: 'Error deleting media' });
+    }
+});
+app.put('/api/admin/media/:id', requireAdminSession, async (req, res) => {
+    try {
+        const db = await Database.read();
+        const item = (db.media || []).find(m => m.id === req.params.id);
+        if (!item)
+            return res.status(404).json({ message: 'Media not found' });
+        if (typeof req.body.altText === 'string')
+            item.altText = req.body.altText;
+        await Database.write(db);
+        res.json(item);
+    }
+    catch (error) {
+        res.status(500).json({ message: 'Error updating media' });
     }
 });
 // 6. User Management (No passwords exposed)
@@ -724,7 +776,7 @@ app.get('/api/admin/activity', requireAdminSession, async (_req, res) => {
 app.get('/api/courses', async (req, res) => {
     try {
         const db = await Database.read();
-        res.json(db.courses);
+        res.json([...(db.courses || [])].sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0)));
     }
     catch (error) {
         res.status(500).json({ message: 'კურსების წაკითხვის შეცდომა' });
@@ -733,7 +785,7 @@ app.get('/api/courses', async (req, res) => {
 app.get('/api/resources', async (req, res) => {
     try {
         const db = await Database.read();
-        res.json(db.resources);
+        res.json([...(db.resources || [])].sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0)));
     }
     catch (error) {
         res.status(500).json({ message: 'ბიბლიოთეკის წაკითხვის შეცდომა' });
@@ -742,7 +794,7 @@ app.get('/api/resources', async (req, res) => {
 app.get('/api/blogs', async (req, res) => {
     try {
         const db = await Database.read();
-        res.json(db.blogs);
+        res.json([...(db.blogs || [])].sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0)));
     }
     catch (error) {
         res.status(500).json({ message: 'ბლოგების წაკითხვის შეცდომა' });
@@ -751,7 +803,7 @@ app.get('/api/blogs', async (req, res) => {
 app.get('/api/events', async (req, res) => {
     try {
         const db = await Database.read();
-        res.json(db.events);
+        res.json([...(db.events || [])].sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0)));
     }
     catch (error) {
         res.status(500).json({ message: 'ღონისძიებების წაკითხვის შეცდომა' });
@@ -1105,316 +1157,159 @@ app.post('/api/courses/:id/register', authenticateToken, async (req, res) => {
         res.status(500).json({ message: 'რეგისტრაციის მოთხოვნის გაგზავნის შეცდომა' });
     }
 });
-// --- ADMIN CMS ENDPOINTS (PROTECTED BY AUTH & ROLE) ---
-// 1. Course Management CRUD
-app.get('/api/admin/courses', authenticateToken, requireAdmin, async (req, res) => {
+const stripMeta = (body) => {
+    const { id: _id, ...rest } = body || {};
+    return rest;
+};
+// Registers list/create/update/delete/reorder routes for a simple content collection
+const registerCollectionRoutes = (key, label, requiredFields, defaults) => {
+    const base = `/api/admin/${key}`;
+    const list = (db) => db[key] || (db[key] = []);
+    app.get(base, requireAdminSession, async (_req, res) => {
+        try {
+            const db = await Database.read();
+            res.json([...list(db)].sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0)));
+        }
+        catch (error) {
+            res.status(500).json({ message: `${label}: წაკითხვის შეცდომა` });
+        }
+    });
+    app.put(`${base}/reorder`, requireAdminSession, async (req, res) => {
+        try {
+            const { orderedIds } = req.body;
+            if (!Array.isArray(orderedIds))
+                return res.status(400).json({ message: 'orderedIds array required' });
+            const db = await Database.read();
+            list(db).forEach(item => {
+                const idx = orderedIds.indexOf(item.id);
+                if (idx !== -1)
+                    item.sortOrder = idx + 1;
+            });
+            await Database.write(db);
+            res.json({ success: true });
+        }
+        catch (error) {
+            res.status(500).json({ message: `${label}: თანმიმდევრობის შენახვის შეცდომა` });
+        }
+    });
+    app.post(base, requireAdminSession, async (req, res) => {
+        try {
+            const missing = requiredFields.filter(f => !req.body?.[f]);
+            if (missing.length)
+                return res.status(400).json({ message: `სავალდებულო ველები: ${missing.join(', ')}` });
+            const db = await Database.read();
+            const items = list(db);
+            const newItem = {
+                ...defaults(),
+                ...stripMeta(req.body),
+                id: generateId(),
+                sortOrder: items.length + 1
+            };
+            items.push(newItem);
+            await Database.write(db);
+            await logActivity(`${label} Created`, label, `Created "${newItem.title}"`, newItem.id);
+            res.status(201).json(newItem);
+        }
+        catch (error) {
+            res.status(500).json({ message: `${label}: შექმნის შეცდომა` });
+        }
+    });
+    app.put(`${base}/:id`, requireAdminSession, async (req, res) => {
+        try {
+            const db = await Database.read();
+            const items = list(db);
+            const idx = items.findIndex(i => i.id === req.params.id);
+            if (idx === -1)
+                return res.status(404).json({ message: `${label}: ჩანაწერი ვერ მოიძებნა` });
+            items[idx] = { ...items[idx], ...stripMeta(req.body) };
+            await Database.write(db);
+            await logActivity(`${label} Updated`, label, `Updated "${items[idx].title}"`, items[idx].id);
+            res.json(items[idx]);
+        }
+        catch (error) {
+            res.status(500).json({ message: `${label}: განახლების შეცდომა` });
+        }
+    });
+    app.delete(`${base}/:id`, requireAdminSession, async (req, res) => {
+        try {
+            const db = await Database.read();
+            const items = list(db);
+            const idx = items.findIndex(i => i.id === req.params.id);
+            if (idx === -1)
+                return res.status(404).json({ message: `${label}: ჩანაწერი ვერ მოიძებნა` });
+            const [removed] = items.splice(idx, 1);
+            await Database.write(db);
+            await logActivity(`${label} Deleted`, label, `Deleted "${removed.title}"`, removed.id);
+            res.json({ success: true });
+        }
+        catch (error) {
+            res.status(500).json({ message: `${label}: წაშლის შეცდომა` });
+        }
+    });
+};
+registerCollectionRoutes('courses', 'Course', ['title'], () => ({
+    description: '', duration: '8 კვირა', category: 'აკადემიური', difficulty: 'დამწყები', modules: []
+}));
+registerCollectionRoutes('resources', 'Resource', ['title'], () => ({
+    author: '', type: 'წიგნი', year: new Date().getFullYear().toString(), description: ''
+}));
+registerCollectionRoutes('blogs', 'Blog', ['title'], () => ({
+    content: '', author: 'ინსტიტუტი', createdAt: new Date().toISOString()
+}));
+registerCollectionRoutes('events', 'Event', ['title'], () => ({
+    date: '', time: '', location: 'ონლაინ', category: 'online'
+}));
+// Course Registrations Manager
+app.get('/api/admin/registrations', requireAdminSession, async (_req, res) => {
     const db = await Database.read();
-    res.json(db.courses);
+    res.json([...(db.registrations || [])].reverse());
 });
-app.post('/api/admin/courses', authenticateToken, requireAdmin, async (req, res) => {
+app.put('/api/admin/registrations/:id', requireAdminSession, async (req, res) => {
     try {
-        const { title, description, duration, category, difficulty, modules } = req.body;
-        if (!title || !description)
-            return res.status(400).json({ message: 'სათაური და აღწერა სავალდებულოა' });
-        const db = await Database.read();
-        const newCourse = {
-            id: generateId(),
-            title,
-            description,
-            duration: duration || '8 კვირა',
-            category: category || 'აკადემიური',
-            difficulty: difficulty || 'დამწყები',
-            modules: Array.isArray(modules) ? modules : []
-        };
-        db.courses.push(newCourse);
-        await Database.write(db);
-        res.status(201).json(newCourse);
-    }
-    catch (error) {
-        res.status(500).json({ message: 'კურსის შექმნის შეცდომა' });
-    }
-});
-app.put('/api/admin/courses/:id', authenticateToken, requireAdmin, async (req, res) => {
-    try {
-        const { id } = req.params;
-        const { title, description, duration, category, difficulty, modules } = req.body;
-        const db = await Database.read();
-        const idx = db.courses.findIndex(c => c.id === id);
-        if (idx === -1)
-            return res.status(404).json({ message: 'კურსი ვერ მოიძებნა' });
-        db.courses[idx] = {
-            ...db.courses[idx],
-            ...(title !== undefined && { title }),
-            ...(description !== undefined && { description }),
-            ...(duration !== undefined && { duration }),
-            ...(category !== undefined && { category }),
-            ...(difficulty !== undefined && { difficulty }),
-            ...(modules !== undefined && { modules })
-        };
-        await Database.write(db);
-        res.json(db.courses[idx]);
-    }
-    catch (error) {
-        res.status(500).json({ message: 'კურსის განახლების შეცდომა' });
-    }
-});
-app.delete('/api/admin/courses/:id', authenticateToken, requireAdmin, async (req, res) => {
-    try {
-        const { id } = req.params;
-        const db = await Database.read();
-        const idx = db.courses.findIndex(c => c.id === id);
-        if (idx === -1)
-            return res.status(404).json({ message: 'კურსი ვერ მოიძებნა' });
-        db.courses.splice(idx, 1);
-        await Database.write(db);
-        res.json({ success: true, message: 'კურსი წაიშალა' });
-    }
-    catch (error) {
-        res.status(500).json({ message: 'კურსის წაშლის შეცდომა' });
-    }
-});
-// 2. Resource (Library) CRUD
-app.get('/api/admin/resources', authenticateToken, requireAdmin, async (req, res) => {
-    const db = await Database.read();
-    res.json(db.resources);
-});
-app.post('/api/admin/resources', authenticateToken, requireAdmin, async (req, res) => {
-    try {
-        const { title, author, type, year, description } = req.body;
-        if (!title || !author)
-            return res.status(400).json({ message: 'სათაური და ავტორი სავალდებულოა' });
-        const db = await Database.read();
-        const newRes = {
-            id: generateId(),
-            title,
-            author,
-            type: type || 'წიგნი',
-            year: year || new Date().getFullYear().toString(),
-            description: description || ''
-        };
-        db.resources.push(newRes);
-        await Database.write(db);
-        res.status(201).json(newRes);
-    }
-    catch (error) {
-        res.status(500).json({ message: 'რესურსის შექმნის შეცდომა' });
-    }
-});
-app.put('/api/admin/resources/:id', authenticateToken, requireAdmin, async (req, res) => {
-    try {
-        const { id } = req.params;
-        const { title, author, type, year, description } = req.body;
-        const db = await Database.read();
-        const idx = db.resources.findIndex(r => r.id === id);
-        if (idx === -1)
-            return res.status(404).json({ message: 'რესურსი ვერ მოიძებნა' });
-        db.resources[idx] = {
-            ...db.resources[idx],
-            ...(title !== undefined && { title }),
-            ...(author !== undefined && { author }),
-            ...(type !== undefined && { type }),
-            ...(year !== undefined && { year }),
-            ...(description !== undefined && { description })
-        };
-        await Database.write(db);
-        res.json(db.resources[idx]);
-    }
-    catch (error) {
-        res.status(500).json({ message: 'რესურსის განახლების შეცდომა' });
-    }
-});
-app.delete('/api/admin/resources/:id', authenticateToken, requireAdmin, async (req, res) => {
-    try {
-        const { id } = req.params;
-        const db = await Database.read();
-        const idx = db.resources.findIndex(r => r.id === id);
-        if (idx === -1)
-            return res.status(404).json({ message: 'რესურსი ვერ მოიძებნა' });
-        db.resources.splice(idx, 1);
-        await Database.write(db);
-        res.json({ success: true, message: 'რესურსი წაიშალა' });
-    }
-    catch (error) {
-        res.status(500).json({ message: 'რესურსის წაშლის შეცდომა' });
-    }
-});
-// 3. Blog Management CRUD
-app.get('/api/admin/blogs', authenticateToken, requireAdmin, async (req, res) => {
-    const db = await Database.read();
-    res.json(db.blogs);
-});
-app.post('/api/admin/blogs', authenticateToken, requireAdmin, async (req, res) => {
-    try {
-        const { title, content, author } = req.body;
-        if (!title || !content)
-            return res.status(400).json({ message: 'სათაური და კონტენტი სავალდებულოა' });
-        const db = await Database.read();
-        const newBlog = {
-            id: generateId(),
-            title,
-            content,
-            author: author || 'ინსტიტუტი',
-            createdAt: new Date().toISOString()
-        };
-        db.blogs.push(newBlog);
-        await Database.write(db);
-        res.status(201).json(newBlog);
-    }
-    catch (error) {
-        res.status(500).json({ message: 'ბლოგის შექმნის შეცდომა' });
-    }
-});
-app.put('/api/admin/blogs/:id', authenticateToken, requireAdmin, async (req, res) => {
-    try {
-        const { id } = req.params;
-        const { title, content, author } = req.body;
-        const db = await Database.read();
-        const idx = db.blogs.findIndex(b => b.id === id);
-        if (idx === -1)
-            return res.status(404).json({ message: 'ბლოგი ვერ მოიძებნა' });
-        db.blogs[idx] = {
-            ...db.blogs[idx],
-            ...(title !== undefined && { title }),
-            ...(content !== undefined && { content }),
-            ...(author !== undefined && { author })
-        };
-        await Database.write(db);
-        res.json(db.blogs[idx]);
-    }
-    catch (error) {
-        res.status(500).json({ message: 'ბლოგის განახლების შეცდომა' });
-    }
-});
-app.delete('/api/admin/blogs/:id', authenticateToken, requireAdmin, async (req, res) => {
-    try {
-        const { id } = req.params;
-        const db = await Database.read();
-        const idx = db.blogs.findIndex(b => b.id === id);
-        if (idx === -1)
-            return res.status(404).json({ message: 'ბლოგი ვერ მოიძებნა' });
-        db.blogs.splice(idx, 1);
-        await Database.write(db);
-        res.json({ success: true, message: 'ბლოგი წაიშალა' });
-    }
-    catch (error) {
-        res.status(500).json({ message: 'ბლოგის წაშლის შეცდომა' });
-    }
-});
-// 4. Event Scheduler CRUD
-app.get('/api/admin/events', authenticateToken, requireAdmin, async (req, res) => {
-    const db = await Database.read();
-    res.json(db.events);
-});
-app.post('/api/admin/events', authenticateToken, requireAdmin, async (req, res) => {
-    try {
-        const { title, date, time, location, category } = req.body;
-        if (!title || !date || !time)
-            return res.status(400).json({ message: 'ყველა ველი სავალდებულოა' });
-        const db = await Database.read();
-        const newEvent = {
-            id: generateId(),
-            title,
-            date,
-            time,
-            location: location || 'ონლაინ',
-            category: category === 'onsite' ? 'onsite' : 'online'
-        };
-        db.events.push(newEvent);
-        await Database.write(db);
-        res.status(201).json(newEvent);
-    }
-    catch (error) {
-        res.status(500).json({ message: 'ღონისძიების შექმნის შეცდომა' });
-    }
-});
-app.put('/api/admin/events/:id', authenticateToken, requireAdmin, async (req, res) => {
-    try {
-        const { id } = req.params;
-        const { title, date, time, location, category } = req.body;
-        const db = await Database.read();
-        const idx = db.events.findIndex(e => e.id === id);
-        if (idx === -1)
-            return res.status(404).json({ message: 'ღონისძიება ვერ მოიძებნა' });
-        db.events[idx] = {
-            ...db.events[idx],
-            ...(title !== undefined && { title }),
-            ...(date !== undefined && { date }),
-            ...(time !== undefined && { time }),
-            ...(location !== undefined && { location }),
-            ...(category !== undefined && { category })
-        };
-        await Database.write(db);
-        res.json(db.events[idx]);
-    }
-    catch (error) {
-        res.status(500).json({ message: 'ღონისძიების განახლების შეცდომა' });
-    }
-});
-app.delete('/api/admin/events/:id', authenticateToken, requireAdmin, async (req, res) => {
-    try {
-        const { id } = req.params;
-        const db = await Database.read();
-        const idx = db.events.findIndex(e => e.id === id);
-        if (idx === -1)
-            return res.status(404).json({ message: 'ღონისძიება ვერ მოიძებნა' });
-        db.events.splice(idx, 1);
-        await Database.write(db);
-        res.json({ success: true, message: 'ღონისძიება წაიშალა' });
-    }
-    catch (error) {
-        res.status(500).json({ message: 'ღონისძიების წაშლის შეცდომა' });
-    }
-});
-// 5. Course Registrations Manager
-app.get('/api/admin/registrations', authenticateToken, requireAdmin, async (req, res) => {
-    const db = await Database.read();
-    res.json(db.registrations);
-});
-app.put('/api/admin/registrations/:id', authenticateToken, requireAdmin, async (req, res) => {
-    try {
-        const { id } = req.params;
-        const { status } = req.body; // 'approved' | 'rejected' | 'pending'
+        const { status } = req.body;
         if (!['approved', 'rejected', 'pending'].includes(status)) {
             return res.status(400).json({ message: 'არასწორი სტატუსი' });
         }
         const db = await Database.read();
-        const idx = db.registrations.findIndex(r => r.id === id);
+        const idx = db.registrations.findIndex(r => r.id === req.params.id);
         if (idx === -1)
             return res.status(404).json({ message: 'რეგისტრაცია ვერ მოიძებნა' });
         db.registrations[idx].status = status;
         await Database.write(db);
+        await logActivity('Registration Updated', 'Registration', `${db.registrations[idx].userName} → ${status}`, db.registrations[idx].id);
         res.json(db.registrations[idx]);
     }
     catch (error) {
         res.status(500).json({ message: 'რეგისტრაციის სტატუსის შეცვლის შეცდომა' });
     }
 });
-app.delete('/api/admin/registrations/:id', authenticateToken, requireAdmin, async (req, res) => {
+app.delete('/api/admin/registrations/:id', requireAdminSession, async (req, res) => {
     try {
-        const { id } = req.params;
         const db = await Database.read();
-        const idx = db.registrations.findIndex(r => r.id === id);
+        const idx = db.registrations.findIndex(r => r.id === req.params.id);
         if (idx === -1)
             return res.status(404).json({ message: 'რეგისტრაცია ვერ მოიძებნა' });
         db.registrations.splice(idx, 1);
         await Database.write(db);
-        res.json({ success: true, message: 'რეგისტრაცია წაიშალა' });
+        res.json({ success: true });
     }
     catch (error) {
         res.status(500).json({ message: 'რეგისტრაციის წაშლის შეცდომა' });
     }
 });
-// 6. Inquiries/Messages Manager
-app.get('/api/admin/inquiries', authenticateToken, requireAdmin, async (req, res) => {
+// Inquiries / Messages Manager
+app.get('/api/admin/inquiries', requireAdminSession, async (_req, res) => {
     const db = await Database.read();
-    res.json(db.inquiries);
+    res.json([...(db.inquiries || [])].sort((a, b) => b.createdAt.localeCompare(a.createdAt)));
 });
-app.put('/api/admin/inquiries/:id', authenticateToken, requireAdmin, async (req, res) => {
+app.put('/api/admin/inquiries/:id', requireAdminSession, async (req, res) => {
     try {
-        const { id } = req.params;
-        const { status } = req.body; // 'urgent' | 'read' | 'unread'
+        const { status } = req.body;
+        if (!['urgent', 'read', 'unread'].includes(status)) {
+            return res.status(400).json({ message: 'არასწორი სტატუსი' });
+        }
         const db = await Database.read();
-        const idx = db.inquiries.findIndex(i => i.id === id);
+        const idx = db.inquiries.findIndex(i => i.id === req.params.id);
         if (idx === -1)
             return res.status(404).json({ message: 'შეტყობინება ვერ მოიძებნა' });
         db.inquiries[idx].status = status;
@@ -1425,111 +1320,118 @@ app.put('/api/admin/inquiries/:id', authenticateToken, requireAdmin, async (req,
         res.status(500).json({ message: 'შეტყობინების განახლების შეცდომა' });
     }
 });
-app.delete('/api/admin/inquiries/:id', authenticateToken, requireAdmin, async (req, res) => {
+app.delete('/api/admin/inquiries/:id', requireAdminSession, async (req, res) => {
     try {
-        const { id } = req.params;
         const db = await Database.read();
-        const idx = db.inquiries.findIndex(i => i.id === id);
+        const idx = db.inquiries.findIndex(i => i.id === req.params.id);
         if (idx === -1)
             return res.status(404).json({ message: 'შეტყობინება ვერ მოიძებნა' });
         db.inquiries.splice(idx, 1);
         await Database.write(db);
-        res.json({ success: true, message: 'შეტყობინება წაიშალა' });
+        res.json({ success: true });
     }
     catch (error) {
         res.status(500).json({ message: 'შეტყობინების წაშლის შეცდომა' });
     }
 });
-// 7. Users Manager (role toggle, delete)
-app.get('/api/admin/users', authenticateToken, requireAdmin, async (req, res) => {
-    const db = await Database.read();
-    // Filter out password hashes for security!
-    const safeUsers = db.users.map(u => ({
-        id: u.id,
-        username: u.username,
-        name: u.name,
-        role: u.role || 'user'
-    }));
-    res.json(safeUsers);
-});
-app.put('/api/admin/users/:id', authenticateToken, requireAdmin, async (req, res) => {
+// Users Manager (role toggle, delete)
+app.put('/api/admin/users/:id', requireAdminSession, async (req, res) => {
     try {
-        const { id } = req.params;
-        const { role } = req.body; // 'admin' | 'user'
-        if (id === 'admin-user-id') {
-            return res.status(400).json({ message: 'სუპერ ადმინისტრატორის უფლებების შეცვლა შეუძლებელია' });
-        }
+        const id = String(req.params.id);
+        const { role } = req.body;
+        if (!['admin', 'user'].includes(role))
+            return res.status(400).json({ message: 'არასწორი როლი' });
+        if (id === req.adminUserId)
+            return res.status(400).json({ message: 'საკუთარი როლის შეცვლა შეუძლებელია' });
         const db = await Database.read();
         const idx = db.users.findIndex(u => u.id === id);
         if (idx === -1)
             return res.status(404).json({ message: 'მომხმარებელი ვერ მოიძებნა' });
         db.users[idx].role = role;
         await Database.write(db);
+        await logActivity('User Role Changed', 'User', `User "${db.users[idx].name}" set to ${role}`, id);
         res.json({ id: db.users[idx].id, username: db.users[idx].username, name: db.users[idx].name, role: db.users[idx].role });
     }
     catch (error) {
         res.status(500).json({ message: 'მომხმარებლის განახლების შეცდომა' });
     }
 });
-app.delete('/api/admin/users/:id', authenticateToken, requireAdmin, async (req, res) => {
+app.delete('/api/admin/users/:id', requireAdminSession, async (req, res) => {
     try {
-        const { id } = req.params;
-        if (id === 'admin-user-id') {
-            return res.status(400).json({ message: 'სუპერ ადმინისტრატორის წაშლა შეუძლებელია' });
-        }
+        const id = String(req.params.id);
+        if (id === req.adminUserId)
+            return res.status(400).json({ message: 'საკუთარი ანგარიშის წაშლა შეუძლებელია' });
         const db = await Database.read();
         const idx = db.users.findIndex(u => u.id === id);
         if (idx === -1)
             return res.status(404).json({ message: 'მომხმარებელი ვერ მოიძებნა' });
-        db.users.splice(idx, 1);
+        const [removed] = db.users.splice(idx, 1);
         await Database.write(db);
-        res.json({ success: true, message: 'მომხმარებელი წაიშალა' });
+        await logActivity('User Deleted', 'User', `Deleted user "${removed.name}"`, id);
+        res.json({ success: true });
     }
     catch (error) {
         res.status(500).json({ message: 'მომხმარებლის წაშლის შეცდომა' });
     }
 });
-// 8. SEO Manager
-app.get('/api/admin/seo', authenticateToken, requireAdmin, async (req, res) => {
+// SEO Manager
+app.get('/api/admin/seo', requireAdminSession, async (_req, res) => {
     const db = await Database.read();
-    res.json(db.seoSettings);
+    res.json(db.seoSettings || []);
 });
-app.put('/api/admin/seo', authenticateToken, requireAdmin, async (req, res) => {
+app.put('/api/admin/seo', requireAdminSession, async (req, res) => {
     try {
         const { path: pagePath, title, description, keywords } = req.body;
         if (!pagePath)
             return res.status(400).json({ message: 'გვერდის მისამართი (path) აუცილებელია' });
         const db = await Database.read();
-        const idx = db.seoSettings.findIndex(s => s.path === pagePath);
         const setting = {
             path: pagePath,
             title: title || '',
             description: description || '',
             keywords: keywords || ''
         };
-        if (idx !== -1) {
+        const idx = db.seoSettings.findIndex(s => s.path === pagePath);
+        if (idx !== -1)
             db.seoSettings[idx] = setting;
-        }
-        else {
+        else
             db.seoSettings.push(setting);
-        }
         await Database.write(db);
+        await logActivity('SEO Updated', 'SEO', `Updated SEO for ${pagePath}`);
         res.json(setting);
     }
     catch (error) {
         res.status(500).json({ message: 'SEO პარამეტრების შენახვის შეცდომა' });
     }
 });
-// 9. Site Settings & Dynamic Texts Manager
-app.get('/api/admin/settings', authenticateToken, requireAdmin, async (req, res) => {
+app.delete('/api/admin/seo', requireAdminSession, async (req, res) => {
+    try {
+        const pagePath = String(req.query.path || '');
+        const db = await Database.read();
+        db.seoSettings = db.seoSettings.filter(s => s.path !== pagePath);
+        await Database.write(db);
+        res.json({ success: true });
+    }
+    catch (error) {
+        res.status(500).json({ message: 'SEO ჩანაწერის წაშლის შეცდომა' });
+    }
+});
+// Site Settings & Dynamic Texts Manager
+app.get('/api/admin/settings', requireAdminSession, async (_req, res) => {
     const db = await Database.read();
     res.json(db.siteSettings);
 });
-app.put('/api/admin/settings', authenticateToken, requireAdmin, async (req, res) => {
+app.put('/api/admin/settings', requireAdminSession, async (req, res) => {
     try {
         const db = await Database.read();
-        db.siteSettings = { ...db.siteSettings, ...req.body };
+        const incoming = {};
+        for (const [k, v] of Object.entries(req.body || {})) {
+            if (typeof v === 'string')
+                incoming[k] = v;
+        }
+        db.siteSettings = { ...db.siteSettings, ...incoming };
         await Database.write(db);
+        await logActivity('Site Content Updated', 'Settings', `Updated ${Object.keys(incoming).length} site text/image fields`);
         res.json(db.siteSettings);
     }
     catch (error) {

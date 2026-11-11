@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import api from '../api';
+import { useSite } from '../content/SiteContext';
 import { Search, BookOpen, GraduationCap, Clock, Calendar, ChevronRight, FileText } from 'lucide-react';
 
 interface Course {
@@ -10,6 +11,8 @@ interface Course {
   category: string;
   difficulty: string;
   modules: string[];
+  imageUrl?: string;
+  price?: string;
 }
 
 interface Resource {
@@ -19,6 +22,8 @@ interface Resource {
   type: string;
   year: string;
   description: string;
+  fileUrl?: string;
+  imageUrl?: string;
 }
 
 interface Blog {
@@ -26,39 +31,29 @@ interface Blog {
   title: string;
   content: string;
   author: string;
+  imageUrl?: string;
   createdAt: string;
 }
 
-export const AcademicLibrary: React.FC = () => {
+export const AcademicLibrary: React.FC<{ onNavigate: (page: string) => void }> = ({ onNavigate }) => {
+  const { t } = useSite();
   const [courses, setCourses] = useState<Course[]>([]);
   const [resources, setResources] = useState<Resource[]>([]);
   const [blogs, setBlogs] = useState<Blog[]>([]);
   const [activeTab, setActiveTab] = useState<'courses' | 'library' | 'blogs'>('courses');
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
-  const [siteSettings, setSiteSettings] = useState({
-    academicTitle: 'აკადემიური პორტალი',
-    academicSubtitle: 'გაიღრმავეთ ცოდნა ფსიქოსინთეზის თეორიაში, გაეცანით კლასიკურ ნაშრომებსა და უახლეს სამეცნიერო პუბლიკაციებს.',
-    academicCoursesTab: 'აკადემიური კურსები',
-    academicLibraryTab: 'ბიბლიოთეკა',
-    academicBlogsTab: 'ბლოგები და პუბლიკაციები'
-  });
-
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [coursesRes, resourcesRes, blogsRes, settingsRes] = await Promise.all([
+        const [coursesRes, resourcesRes, blogsRes] = await Promise.all([
           api.get('/courses'),
           api.get('/resources'),
-          api.get('/blogs'),
-          api.get('/settings').catch(() => ({ data: null }))
+          api.get('/blogs')
         ]);
         if (coursesRes.data && Array.isArray(coursesRes.data)) setCourses(coursesRes.data);
         if (resourcesRes.data && Array.isArray(resourcesRes.data)) setResources(resourcesRes.data);
         if (blogsRes.data && Array.isArray(blogsRes.data)) setBlogs(blogsRes.data);
-        if (settingsRes.data) {
-          setSiteSettings(prev => ({ ...prev, ...settingsRes.data }));
-        }
       } catch (err) {
         console.error('Error fetching academic data:', err);
       } finally {
@@ -104,13 +99,13 @@ export const AcademicLibrary: React.FC = () => {
       {/* Header section */}
       <div className="text-center max-w-2xl mx-auto space-y-4">
         <span className="font-label-md text-label-md text-tertiary-container uppercase tracking-[0.2em] academic-border pb-2 w-max mx-auto block">
-          Academia & Library
+          {t('academicLabel')}
         </span>
         <h2 className="font-display-lg text-display-lg-mobile md:text-display-lg text-surface-bright leading-tight">
-          {siteSettings.academicTitle}
+          {t('academicTitle')}
         </h2>
         <p className="font-body-md text-surface-variant/80">
-          {siteSettings.academicSubtitle}
+          {t('academicSubtitle')}
         </p>
       </div>
 
@@ -126,7 +121,7 @@ export const AcademicLibrary: React.FC = () => {
             }`}
           >
             <GraduationCap size={16} />
-            {siteSettings.academicCoursesTab}
+            {t('academicCoursesTab')}
           </button>
           <button
             onClick={() => setActiveTab('library')}
@@ -137,7 +132,7 @@ export const AcademicLibrary: React.FC = () => {
             }`}
           >
             <BookOpen size={16} />
-            {siteSettings.academicLibraryTab}
+            {t('academicLibraryTab')}
           </button>
           <button
             onClick={() => setActiveTab('blogs')}
@@ -148,7 +143,7 @@ export const AcademicLibrary: React.FC = () => {
             }`}
           >
             <FileText size={16} />
-            {siteSettings.academicBlogsTab}
+            {t('academicBlogsTab')}
           </button>
         </div>
 
@@ -160,7 +155,7 @@ export const AcademicLibrary: React.FC = () => {
           <input
             type="text"
             className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-sm text-surface-bright placeholder-surface-variant/40 focus:ring-1 focus:ring-tertiary-container focus:outline-none"
-            placeholder="ძებნა..."
+            placeholder={t('academicSearchPlaceholder')}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -186,6 +181,7 @@ export const AcademicLibrary: React.FC = () => {
                 className="bg-white/5 border border-white/10 rounded-[32px] p-8 flex flex-col justify-between hover:border-tertiary-container/30 transition-all group"
               >
                 <div className="space-y-6">
+                  {c.imageUrl && <img src={c.imageUrl} alt={c.title} className="w-full aspect-video object-cover rounded-2xl" />}
                   <div className="flex justify-between items-center">
                     <span className="text-[10px] bg-tertiary-container/20 text-tertiary-container px-2.5 py-1 rounded-full uppercase font-bold tracking-wider">
                       {c.difficulty}
@@ -203,14 +199,15 @@ export const AcademicLibrary: React.FC = () => {
                     <p className="text-sm text-surface-variant/80 leading-relaxed line-clamp-3">
                       {c.description}
                     </p>
+                    {c.price && <p className="text-tertiary-container font-bold text-sm">{c.price}</p>}
                   </div>
 
                   <div className="space-y-2 border-t border-white/5 pt-4">
                     <span className="text-xs text-tertiary-container font-semibold uppercase tracking-wider block">
-                      პროგრამის მოდულები:
+                      {t('academicModulesLabel')}
                     </span>
                     <ul className="space-y-1.5">
-                      {c.modules.map((mod, idx) => (
+                      {(c.modules || []).map((mod, idx) => (
                         <li key={idx} className="flex items-center gap-2 text-xs text-surface-variant/90">
                           <ChevronRight size={12} className="text-tertiary-container" />
                           <span>{mod}</span>
@@ -224,7 +221,7 @@ export const AcademicLibrary: React.FC = () => {
                   onClick={() => handleRegisterCourse(c.id)}
                   className="w-full bg-tertiary-container/10 text-tertiary-container border border-tertiary-container/20 py-2.5 rounded-xl font-label-md hover:bg-tertiary-container hover:text-primary-container transition-all mt-8 cursor-pointer"
                 >
-                  რეგისტრაციის მოთხოვნა
+                  {t('academicRegisterButton')}
                 </button>
               </div>
             ))
@@ -250,7 +247,7 @@ export const AcademicLibrary: React.FC = () => {
                     </span>
                     <div className="flex items-center gap-1 text-xs text-surface-variant/70">
                       <Calendar size={12} className="text-tertiary-container" />
-                      <span>{r.year} წელი</span>
+                      <span>{r.year} {t('academicYearSuffix')}</span>
                     </div>
                   </div>
 
@@ -266,9 +263,11 @@ export const AcademicLibrary: React.FC = () => {
                   </p>
                 </div>
 
-                <button className="w-full bg-white/5 text-surface-bright py-2 rounded-xl text-xs font-semibold hover:bg-white/10 transition-all border border-white/5 mt-6 cursor-pointer">
-                  მასალის ჩამოტვირთვა
-                </button>
+                {r.fileUrl && (
+                  <a href={r.fileUrl} target="_blank" rel="noopener noreferrer" className="block text-center w-full bg-white/5 text-surface-bright py-2 rounded-xl text-xs font-semibold hover:bg-white/10 transition-all border border-white/5 mt-6 cursor-pointer">
+                    {t('academicDownloadButton')}
+                  </a>
+                )}
               </div>
             ))
           )}
@@ -287,6 +286,7 @@ export const AcademicLibrary: React.FC = () => {
                 className="bg-white/5 border border-white/10 rounded-3xl p-8 flex flex-col justify-between hover:border-tertiary-container/40 transition-all group shadow-lg text-left"
               >
                 <div className="space-y-4">
+                  {b.imageUrl && <img src={b.imageUrl} alt={b.title} className="w-full aspect-video object-cover rounded-2xl" />}
                   <div className="flex justify-between items-center text-xs text-surface-variant/60">
                     <span className="bg-tertiary-container/20 text-tertiary-fixed px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider">
                       {b.author}
@@ -302,10 +302,10 @@ export const AcademicLibrary: React.FC = () => {
                   />
                 </div>
                 <button 
-                  onClick={() => alert(`სტატია: "${b.title}"\nავტორი: ${b.author}`)}
+                  onClick={() => onNavigate(`blog-${b.id}`)}
                   className="inline-flex items-center gap-2 text-tertiary-fixed text-xs font-bold pt-4 hover:underline mt-4 cursor-pointer"
                 >
-                  სრულად წაკითხვა <ChevronRight size={14} />
+                  {t('academicReadMore')} <ChevronRight size={14} />
                 </button>
               </article>
             ))

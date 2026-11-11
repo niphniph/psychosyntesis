@@ -1,33 +1,23 @@
 import React from 'react';
 import { PracticeTimer } from '../components/PracticeTimer';
+import { useSite } from '../content/SiteContext';
 
 interface PracticeRoomProps {
   isAuthenticated: boolean;
 }
 
 export const PracticeRoom: React.FC<PracticeRoomProps> = ({ isAuthenticated }) => {
-  const [siteSettings, setSiteSettings] = React.useState({
-    practiceTitle: 'შინაგანი მედიტაციის ოთახი',
-    practiceSubtitle: 'გამოიყენეთ სტრუქტურირებული მედიტაციები და სუნთქვითი ვარჯიშები შინაგანი ჰარმონიის მისაღწევად.'
-  });
-
-  React.useEffect(() => {
-    import('../api').then(module => {
-      module.default.get('/settings').then(res => {
-        if (res.data) setSiteSettings(prev => ({ ...prev, ...res.data }));
-      }).catch(() => {});
-    });
-  }, []);
+  const { t } = useSite();
 
   return (
     <div className="space-y-8">
       <div className="text-center max-w-2xl mx-auto space-y-2">
         <span className="text-xs uppercase font-label-md text-tertiary-container tracking-widest block">
-          Meditation & Visualization Space
+          {t('practiceLabel')}
         </span>
-        <h2 className="text-3xl font-headline-lg text-surface-bright">{siteSettings.practiceTitle}</h2>
+        <h2 className="text-3xl font-headline-lg text-surface-bright">{t('practiceTitle')}</h2>
         <p className="text-sm text-surface-variant/80">
-          {siteSettings.practiceSubtitle}
+          {t('practiceSubtitle')}
         </p>
       </div>
 

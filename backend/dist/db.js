@@ -261,7 +261,9 @@ const seedHomepageSections = [
 const seedNavigationItems = [
     { id: 'nav-1', label: 'მთავარი', url: '/', isExternal: false, isVisible: true, sortOrder: 1 },
     { id: 'nav-2', label: 'ჩვენ შესახებ', url: '/#about-philosophy', isExternal: false, isVisible: true, sortOrder: 2 },
-    { id: 'nav-3', label: 'დამფუძნებელი', url: '/founder', isExternal: false, isVisible: true, sortOrder: 3 },
+    { id: 'nav-2a', label: 'ინსტიტუტის ისტორია', url: '/#about-philosophy', isExternal: false, isVisible: true, sortOrder: 1, parentId: 'nav-2' },
+    { id: 'nav-2b', label: 'დამფუძნებელი', url: '/founder', isExternal: false, isVisible: true, sortOrder: 2, parentId: 'nav-2' },
+    { id: 'nav-3', label: 'ფსიქოსინთეზის შესახებ', url: '/#about-philosophy', isExternal: false, isVisible: true, sortOrder: 3 },
     { id: 'nav-4', label: 'აკადემიური პორტალი', url: '/academic', isExternal: false, isVisible: true, sortOrder: 4 },
     { id: 'nav-5', label: 'რესურსები', url: '/resources', isExternal: false, isVisible: true, sortOrder: 5 },
     { id: 'nav-6', label: 'ღონისძიებები', url: '/events', isExternal: false, isVisible: true, sortOrder: 6 }

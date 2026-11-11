@@ -1,15 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import api from '../api';
-import { 
-  LayoutDashboard, FileText, Layers, Home as HomeIcon, Image as ImageIcon, 
-  Users, Menu as MenuIcon, Settings as SettingsIcon, History, LogOut, 
-  Globe, Plus, Trash2, Edit, X, Search, Eye, Copy, 
-  ArrowUp, ArrowDown, Sparkles, ShieldCheck, ChevronRight
+import api, { ADMIN_TOKEN_KEY } from '../api';
+import {
+  LayoutDashboard, FileText, Layers, Home as HomeIcon, Image as ImageIcon,
+  Users, Menu as MenuIcon, Settings as SettingsIcon, History, LogOut,
+  Globe, Plus, Trash2, Edit, X, Search, Eye, Copy,
+  ArrowUp, ArrowDown, Sparkles, ShieldCheck, ChevronRight,
+  Type, GraduationCap, BookOpen, Newspaper, CalendarDays, ClipboardList, Mail, SearchCheck, Link2
 } from 'lucide-react';
 import { RichTextEditor } from '../components/RichTextEditor';
 import { MediaLibraryModal } from '../components/MediaLibraryModal';
 import { ConfirmModal } from '../components/ConfirmModal';
 import { PostPreviewModal } from '../components/PostPreviewModal';
+import { AdminLogin } from '../components/admin/AdminLogin';
+import { ContentEditor } from '../components/admin/ContentEditor';
+import { CollectionManager } from '../components/admin/CollectionManager';
+import { InboxManager } from '../components/admin/InboxManager';
+import { SeoManager } from '../components/admin/SeoManager';
+import { Field, MediaInput, Toggle, inputClass, getApiError } from '../components/admin/ui';
+import { COLLECTIONS } from '../components/admin/collections';
 
 interface Post {
   id: string;
@@ -37,6 +45,7 @@ interface Page {
   id: string;
   title: string;
   slug: string;
+  subtitle?: string;
   content: string;
   heroImage?: string;
   seoTitle?: string;
@@ -68,6 +77,7 @@ interface NavigationItem {
   isExternal: boolean;
   isVisible: boolean;
   sortOrder: number;
+  parentId?: string;
 }
 
 interface MediaItem {
@@ -106,6 +116,8 @@ interface OverviewData {
   totalPages: number;
   recentActivity: ActivityLogItem[];
   recentRegistrations: any[];
+  unreadInquiries?: number;
+  pendingRegistrations?: number;
 }
 
 interface AdminDashboardProps {
@@ -113,7 +125,46 @@ interface AdminDashboardProps {
   onNavigateHome: () => void;
 }
 
+// Login gate: the panel is only rendered after the backend confirms the admin session
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavigateHome }) => {
+  const [status, setStatus] = useState<'checking' | 'in' | 'out'>('checking');
+  const [adminName, setAdminName] = useState('');
+
+  const verify = async () => {
+    try {
+      const res = await api.get('/admin/auth/verify');
+      setAdminName(res.data?.user?.name || '');
+      setStatus('in');
+    } catch {
+      localStorage.removeItem(ADMIN_TOKEN_KEY);
+      setStatus('out');
+    }
+  };
+
+  useEffect(() => {
+    verify();
+  }, []);
+
+  const handleLogout = async () => {
+    try {
+      await api.post('/admin/logout');
+    } catch {
+      // session is dropped locally either way
+    }
+    localStorage.removeItem(ADMIN_TOKEN_KEY);
+    onLogout();
+  };
+
+  if (status === 'checking') {
+    return <div className="min-h-screen bg-[#00241a] text-[#c7a85b] flex items-center justify-center font-bold text-xs">სესიის შემოწმება...</div>;
+  }
+  if (status === 'out') {
+    return <AdminLogin onSuccess={verify} onNavigateHome={onNavigateHome} />;
+  }
+  return <AdminPanel onLogout={handleLogout} onNavigateHome={onNavigateHome} adminName={adminName} />;
+};
+
+const AdminPanel: React.FC<AdminDashboardProps & { adminName: string }> = ({ onLogout, onNavigateHome, adminName }) => {
   const [activeTab, setActiveTab] = useState<string>('dashboard');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -142,15 +193,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
   // Media Library State
   const [mediaList, setMediaList] = useState<MediaItem[]>([]);
   const [isMediaModalOpen, setIsMediaModalOpen] = useState(false);
-  const [mediaTargetField, setMediaTargetField] = useState<'postFeatured' | 'pageHero' | 'sectionImage' | 'sectionBg' | 'editor' | null>(null);
-  const [mediaTargetSectionIndex, setMediaTargetSectionIndex] = useState<number | null>(null);
 
   // Users State
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [userSearch, setUserSearch] = useState('');
 
-  // Settings State
-  const [siteSettings, setSiteSettings] = useState<any>({});
+  // Account (password change) State
+  const [passwordForm, setPasswordForm] = useState({ currentPassword: '', newPassword: '', confirm: '' });
 
   // Activity Log State
   const [activityLogs, setActivityLogs] = useState<ActivityLogItem[]>([]);
@@ -186,7 +235,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
     fetchNavigation();
     fetchMedia();
     fetchUsers();
-    fetchSettings();
     fetchActivity();
   }, []);
 
@@ -259,15 +307,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
     }
   };
 
-  const fetchSettings = async () => {
-    try {
-      const res = await api.get('/admin/settings');
-      if (res.data) setSiteSettings(res.data);
-    } catch (err) {
-      console.error('Error fetching settings', err);
-    }
-  };
-
   const fetchActivity = async () => {
     try {
       const res = await api.get('/admin/activity');
@@ -285,10 +324,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
     try {
       if (editingPost.id) {
         await api.put(`/admin/posts/${editingPost.id}`, editingPost);
-        showToast('Post updated successfully!');
+        showToast('სტატია განახლდა!');
       } else {
         await api.post('/admin/posts', editingPost);
-        showToast('Post created successfully!');
+        showToast('სტატია შეიქმნა!');
       }
       setIsPostFormOpen(false);
       setEditingPost(null);
@@ -297,7 +336,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
       fetchOverview();
       fetchActivity();
     } catch (err) {
-      showToast('Error saving post');
+      showToast(getApiError(err, 'სტატიის შენახვის შეცდომა'));
     }
   };
 
@@ -355,12 +394,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
     if (!editingPage?.title || !editingPage?.slug) return;
 
     try {
-      if (editingPage.id) {
-        await api.put(`/admin/pages/${editingPage.id}`, editingPage);
-        showToast('Page updated successfully!');
-      } else {
-        await api.post('/admin/pages', editingPage);
-        showToast('Page created successfully!');
+      const saved = editingPage.id
+        ? (await api.put(`/admin/pages/${editingPage.id}`, editingPage)).data
+        : (await api.post('/admin/pages', editingPage)).data;
+      showToast(editingPage.id ? 'გვერდი განახლდა!' : 'გვერდი შეიქმნა!');
+      const pageUrl = `/${saved?.slug || editingPage.slug}`;
+      if (editingPage.navVisible && !navigationItems.some(n => n.url === pageUrl)) {
+        const topCount = navigationItems.filter(n => !n.parentId).length;
+        await handleSaveNavigation([...navigationItems, {
+          id: `nav-${Date.now()}`, label: saved?.title || editingPage.title || '', url: pageUrl,
+          isExternal: false, isVisible: true, sortOrder: topCount + 1
+        }]);
       }
       setIsPageFormOpen(false);
       setEditingPage(null);
@@ -369,7 +413,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
       fetchOverview();
       fetchActivity();
     } catch (err) {
-      showToast('Error saving page');
+      showToast(getApiError(err, 'გვერდის შენახვის შეცდომა'));
     }
   };
 
@@ -425,10 +469,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
     }
   };
 
-  const handleAddSection = () => {
+  const handleAddSection = (sectionKey: HomepageSection['sectionKey'] = 'custom') => {
     const newSection: HomepageSection = {
       id: `sec-${Date.now()}`,
-      sectionKey: 'custom',
+      sectionKey,
       title: 'ახალი სექცია',
       subtitle: 'ქვესათაური',
       content: '',
@@ -481,54 +525,110 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
     }
   };
 
-  // --- SETTINGS ACTIONS ---
-  const handleSaveSettings = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleChangeUserRole = async (u: UserProfile) => {
+    const role = u.role === 'admin' ? 'user' : 'admin';
     try {
-      await api.put('/admin/settings', siteSettings);
-      showToast('Site settings updated!');
+      await api.put(`/admin/users/${u.id}`, { role });
+      showToast(`როლი შეიცვალა: ${role === 'admin' ? 'ადმინისტრატორი' : 'მომხმარებელი'}`);
+      fetchUsers();
       fetchActivity();
     } catch (err) {
-      showToast('Error saving settings');
+      showToast(getApiError(err, 'როლის შეცვლის შეცდომა'));
     }
   };
 
-  // Media Selection Handler
-  const handleMediaSelect = (url: string) => {
-    if (mediaTargetField === 'postFeatured' && editingPost) {
-      setEditingPost(prev => ({ ...prev, featuredImage: url }));
-    } else if (mediaTargetField === 'pageHero' && editingPage) {
-      setEditingPage(prev => ({ ...prev, heroImage: url }));
-    } else if (mediaTargetField === 'sectionImage' && mediaTargetSectionIndex !== null) {
-      const updated = [...sections];
-      if (updated[mediaTargetSectionIndex]) {
-        updated[mediaTargetSectionIndex].imageUrl = url;
-        setSections(updated);
+  const handleDeleteUser = (u: UserProfile) => {
+    setConfirmModalState({
+      isOpen: true,
+      title: 'მომხმარებლის წაშლა',
+      message: `ნამდვილად გსურთ წაშალოთ "${u.name}"?`,
+      onConfirm: async () => {
+        try {
+          await api.delete(`/admin/users/${u.id}`);
+          showToast('მომხმარებელი წაიშალა');
+          fetchUsers();
+          fetchOverview();
+        } catch (err) {
+          showToast(getApiError(err, 'წაშლის შეცდომა'));
+        }
       }
-    } else if (mediaTargetField === 'sectionBg' && mediaTargetSectionIndex !== null) {
-      const updated = [...sections];
-      if (updated[mediaTargetSectionIndex]) {
-        updated[mediaTargetSectionIndex].bgImageUrl = url;
-        setSections(updated);
-      }
-    } else if (mediaTargetField === 'editor' && editingPost) {
-      setEditingPost(prev => ({
-        ...prev,
-        content: (prev?.content || '') + `\n<img src="${url}" alt="Media Image" class="w-full rounded-2xl my-4" />`
-      }));
+    });
+  };
+
+  // --- ACCOUNT ACTIONS ---
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (passwordForm.newPassword !== passwordForm.confirm) {
+      showToast('ახალი პაროლები არ ემთხვევა');
+      return;
     }
+    try {
+      await api.post('/admin/change-password', {
+        currentPassword: passwordForm.currentPassword,
+        newPassword: passwordForm.newPassword
+      });
+      setPasswordForm({ currentPassword: '', newPassword: '', confirm: '' });
+      showToast('პაროლი წარმატებით შეიცვალა');
+      fetchActivity();
+    } catch (err) {
+      showToast(getApiError(err, 'პაროლის შეცვლის შეცდომა'));
+    }
+  };
+
+  // --- MEDIA ACTIONS ---
+  const handleDeleteMedia = (m: MediaItem) => {
+    setConfirmModalState({
+      isOpen: true,
+      title: 'ფაილის წაშლა',
+      message: `ნამდვილად გსურთ წაშალოთ "${m.filename}"? თუ ის სადმე გამოიყენება, იქ აღარ გამოჩნდება.`,
+      onConfirm: async () => {
+        try {
+          await api.delete(`/admin/media/${m.id}`);
+          showToast('ფაილი წაიშალა');
+          fetchMedia();
+        } catch (err) {
+          showToast(getApiError(err, 'წაშლის შეცდომა'));
+        }
+      }
+    });
+  };
+
+  const copyMediaUrl = async (url: string) => {
+    const absolute = new URL(url, window.location.origin).href;
+    try {
+      await navigator.clipboard.writeText(absolute);
+      showToast('ბმული დაკოპირდა');
+    } catch {
+      window.prompt('დააკოპირეთ ბმული:', absolute);
+    }
+  };
+
+  // Switching tabs while an editor has unsaved changes asks first
+  const switchTab = (tab: string) => {
+    if (hasUnsavedChanges && tab !== activeTab && !window.confirm('შეუნახავი ცვლილებები დაიკარგება. გავაგრძელოთ?')) return;
+    setHasUnsavedChanges(false);
+    setActiveTab(tab);
+    setMobileMenuOpen(false);
   };
 
   // Navigation Items Sidebar List
-  const navTabs = [
+  const navTabs: { id: string; label: string; icon: any; badge?: number; group?: string }[] = [
     { id: 'dashboard', label: 'მთავარი პანელი', icon: LayoutDashboard },
-    { id: 'posts', label: 'სტატიები / პოსტები', icon: FileText, badge: posts.length },
+    { id: 'content', label: 'საიტის ტექსტები და სურათები', icon: Type, group: 'საიტის კონტენტი' },
+    { id: 'homepage', label: 'მთავარი გვერდის სექციები', icon: HomeIcon },
     { id: 'pages', label: 'გვერდები', icon: Layers, badge: pages.length },
-    { id: 'homepage', label: 'მთავარი გვერდის რედაქტორი', icon: HomeIcon },
-    { id: 'navigation', label: 'ნავიგაციის მენიუ', icon: MenuIcon },
+    { id: 'navigation', label: 'მენიუ / ნავიგაცია', icon: MenuIcon },
+    { id: 'posts', label: 'სტატიები / პოსტები', icon: FileText, badge: posts.length },
     { id: 'media', label: 'მედია ბიბლიოთეკა', icon: ImageIcon, badge: mediaList.length },
-    { id: 'users', label: 'მომხმარებლები', icon: Users, badge: users.length },
-    { id: 'settings', label: 'პარამეტრები', icon: SettingsIcon },
+    { id: 'courses', label: 'კურსები', icon: GraduationCap, group: 'აკადემია და ღონისძიებები' },
+    { id: 'resources', label: 'ბიბლიოთეკა', icon: BookOpen },
+    { id: 'blogs', label: 'ბლოგები', icon: Newspaper },
+    { id: 'events', label: 'ღონისძიებები', icon: CalendarDays },
+    { id: 'registrations', label: 'რეგისტრაციები', icon: ClipboardList, badge: overview?.pendingRegistrations || undefined, group: 'კომუნიკაცია' },
+    { id: 'inquiries', label: 'შეტყობინებები', icon: Mail, badge: overview?.unreadInquiries || undefined },
+    { id: 'users', label: 'მომხმარებლები', icon: Users, badge: users.length, group: 'სისტემა' },
+    { id: 'seo', label: 'SEO', icon: SearchCheck },
+    { id: 'settings', label: 'ანგარიში და პაროლი', icon: SettingsIcon },
     { id: 'activity', label: 'მოქმედებების ჟურნალი', icon: History }
   ];
 
@@ -557,7 +657,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
             </div>
             <div>
               <h1 className="text-base font-bold font-display-lg text-white leading-none">ფსიქოსინთეზის ადმინისტრაცია</h1>
-              <span className="text-[10px] text-[#a4d0be]/70 font-mono">დაცული სესიის სტატუსი: აქტიური</span>
+              <span className="text-[10px] text-[#a4d0be]/70 font-mono">{adminName ? `შესული ხართ: ${adminName}` : 'დაცული სესია: აქტიური'}</span>
             </div>
           </div>
         </div>
@@ -594,12 +694,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
               return (
+                <React.Fragment key={tab.id}>
+                {tab.group && (
+                  <div className="text-[10px] font-bold text-[#c7a85b]/70 uppercase tracking-widest px-3 pt-4 pb-1">{tab.group}</div>
+                )}
                 <button
-                  key={tab.id}
-                  onClick={() => {
-                    setActiveTab(tab.id);
-                    setMobileMenuOpen(false);
-                  }}
+                  onClick={() => switchTab(tab.id)}
                   className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                     isActive
                       ? 'bg-[#c7a85b] text-[#00241a] shadow-lg scale-[1.02]'
@@ -618,6 +718,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
                     </span>
                   )}
                 </button>
+                </React.Fragment>
               );
             })}
           </div>
@@ -794,9 +895,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
                     className="bg-[#00241a] border border-[#c7a85b]/30 text-white rounded-xl px-3 py-2 text-xs focus:outline-none"
                   >
                     <option value="all">ყველა კატეგორია</option>
-                    <option value="Theory">თეორია</option>
-                    <option value="Practice">პრაქტიკა</option>
-                    <option value="Research">კვლევა</option>
+                    {Array.from(new Set(posts.map(p => p.category).filter(Boolean))).map(c => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
                   </select>
                 </div>
               </div>
@@ -817,7 +918,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
                     </thead>
                     <tbody className="divide-y divide-white/5">
                       {posts
-                        .filter(p => p.title.toLowerCase().includes(postSearch.toLowerCase()))
+                        .filter(p => p.title.toLowerCase().includes(postSearch.toLowerCase()) || (p.tags || []).some(t => t.toLowerCase().includes(postSearch.toLowerCase())))
+                        .filter(p => postCategoryFilter === 'all' || p.category === postCategoryFilter)
                         .map((post, idx) => (
                           <tr key={post.id} className="hover:bg-[#00241a]/60 transition-colors">
                             <td className="p-4">
@@ -909,6 +1011,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
                     onClick={() => {
                       setIsPostFormOpen(false);
                       setEditingPost(null);
+                      setHasUnsavedChanges(false);
                     }}
                     className="text-white/60 hover:text-white p-2 rounded-xl hover:bg-white/10"
                   >
@@ -991,40 +1094,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
                     </div>
                   </div>
 
-                  {/* Featured Image & Media Library Selection */}
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-[#c7a85b]">მთავარი სურათის URL</label>
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        value={editingPost.featuredImage || ''}
-                        onChange={(e) => setEditingPost(prev => ({ ...prev, featuredImage: e.target.value }))}
-                        className="flex-1 bg-[#00241a] border border-[#c7a85b]/30 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none"
-                        placeholder="https://..."
-                      />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setMediaTargetField('postFeatured');
-                          setIsMediaModalOpen(true);
-                        }}
-                        className="bg-[#c7a85b]/20 hover:bg-[#c7a85b] text-[#c7a85b] hover:text-[#00241a] px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shrink-0"
-                      >
-                        <ImageIcon size={14} /> სურათის არჩევა
-                      </button>
-                    </div>
-                  </div>
+                  {/* Featured Image */}
+                  <Field label="მთავარი სურათი">
+                    <MediaInput value={editingPost.featuredImage || ''} onChange={(url) => setEditingPost(prev => ({ ...prev, featuredImage: url }))} />
+                  </Field>
 
                   {/* WYSIWYG Rich Text Content Editor */}
                   <div className="space-y-1">
                     <label className="text-xs font-bold text-[#c7a85b]">სრული ტექსტი (რედაქტორი)</label>
                     <RichTextEditor
                       value={editingPost.content || ''}
-                      onChange={(val) => setEditingPost(prev => ({ ...prev, content: val }))}
-                      onOpenMediaLibrary={() => {
-                        setMediaTargetField('editor');
-                        setIsMediaModalOpen(true);
-                      }}
+                      onChange={(val) => { setEditingPost(prev => ({ ...prev, content: val })); setHasUnsavedChanges(true); }}
+                      minHeight={380}
                     />
                   </div>
 
@@ -1062,6 +1143,36 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
                         className="w-full bg-[#00241a] border border-[#c7a85b]/30 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none"
                       />
                     </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <Field label="ტეგები" help="მძიმით გამოყოფილი">
+                      <input
+                        value={(editingPost.tags || []).join(', ')}
+                        onChange={(e) => setEditingPost(prev => ({ ...prev, tags: e.target.value.split(',').map(t => t.trim()).filter(Boolean) }))}
+                        className={inputClass}
+                      />
+                    </Field>
+                    <Field label="გამოქვეყნების თარიღი">
+                      <input
+                        type="date"
+                        value={(editingPost.publishDate || new Date().toISOString()).slice(0, 10)}
+                        onChange={(e) => setEditingPost(prev => ({ ...prev, publishDate: new Date(e.target.value).toISOString() }))}
+                        className={inputClass}
+                      />
+                    </Field>
+                    <div className="flex items-end pb-2">
+                      <Toggle checked={!!editingPost.featured} onChange={(v) => setEditingPost(prev => ({ ...prev, featured: v }))} label="რჩეული სტატია" />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-[#00241a] rounded-2xl border border-[#c7a85b]/20">
+                    <Field label="SEO სათაური" help="ბრაუზერის ჩანართში და Google-ში">
+                      <input value={editingPost.seoTitle || ''} onChange={(e) => setEditingPost(prev => ({ ...prev, seoTitle: e.target.value }))} className={inputClass} placeholder={editingPost.title} />
+                    </Field>
+                    <Field label="SEO აღწერა">
+                      <input value={editingPost.seoDescription || ''} onChange={(e) => setEditingPost(prev => ({ ...prev, seoDescription: e.target.value }))} className={inputClass} placeholder={editingPost.shortDescription} />
+                    </Field>
                   </div>
                 </div>
 
@@ -1122,16 +1233,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
                     <div className="space-y-2">
                       <div className="flex justify-between items-start">
                         <h3 className="text-lg font-bold text-white font-display-lg">{page.title}</h3>
-                        <span className="bg-emerald-950 text-emerald-400 border border-emerald-800 text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-full">
+                        <span className={`text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-full border ${page.status === 'published' ? 'bg-emerald-950 text-emerald-400 border-emerald-800' : page.status === 'draft' ? 'bg-amber-950 text-amber-400 border-amber-800' : 'bg-gray-800 text-gray-400 border-gray-700'}`}>
                           {page.status === 'published' ? 'გამოქვეყნებული' : page.status === 'draft' ? 'დრაფტი' : 'დაფარული'}
                         </span>
                       </div>
-                      <p className="text-xs font-mono text-[#c7a85b]">/psychosynthesis/{page.slug}</p>
+                      <p className="text-xs font-mono text-[#c7a85b]">/{page.slug}</p>
+                      {page.subtitle && <p className="text-xs text-[#a4d0be]">{page.subtitle}</p>}
                     </div>
 
                     <div className="flex justify-between items-center border-t border-white/10 pt-4">
                       <span className="text-[11px] text-[#a4d0be]">
-                        მენიუში გამოჩენა: <strong className="text-white">{page.navVisible ? 'დიახ' : 'არა'}</strong>
+                        მენიუში: <strong className="text-white">{navigationItems.some(n => n.url === `/${page.slug}`) ? 'დიახ' : 'არა'}</strong>
                       </span>
                       <div className="flex gap-2">
                         <button
@@ -1165,7 +1277,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
                   <h3 className="text-lg font-bold text-white font-display-lg">
                     {editingPage.id ? 'გვერდის რედაქტირება' : 'ახალი გვერდის შექმნა'}
                   </h3>
-                  <button type="button" onClick={() => setIsPageFormOpen(false)} className="text-white/60 hover:text-white"><X size={20} /></button>
+                  <button type="button" onClick={() => { setIsPageFormOpen(false); setHasUnsavedChanges(false); }} className="text-white/60 hover:text-white"><X size={20} /></button>
                 </div>
 
                 <div className="p-6 md:p-8 overflow-y-auto space-y-4 flex-1">
@@ -1194,17 +1306,46 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
                     </div>
                   </div>
 
+                  <Field label="ქვესათაური (ბანერში)">
+                    <input value={editingPage.subtitle || ''} onChange={(e) => setEditingPage(prev => ({ ...prev, subtitle: e.target.value }))} className={inputClass} />
+                  </Field>
+
+                  <Field label="ბანერის სურათი">
+                    <MediaInput value={editingPage.heroImage || ''} onChange={(url) => setEditingPage(prev => ({ ...prev, heroImage: url }))} />
+                  </Field>
+
                   <div className="space-y-1">
                     <label className="text-xs font-bold text-[#c7a85b]">გვერდის შინაარსი</label>
                     <RichTextEditor
                       value={editingPage.content || ''}
-                      onChange={(val) => setEditingPage(prev => ({ ...prev, content: val }))}
+                      onChange={(val) => { setEditingPage(prev => ({ ...prev, content: val })); setHasUnsavedChanges(true); }}
+                      minHeight={380}
                     />
                   </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <Field label="სტატუსი">
+                      <select value={editingPage.status || 'published'} onChange={(e) => setEditingPage(prev => ({ ...prev, status: e.target.value as Page['status'] }))} className={inputClass}>
+                        <option value="published">გამოქვეყნებული</option>
+                        <option value="draft">დრაფტი</option>
+                        <option value="hidden">დაფარული</option>
+                      </select>
+                    </Field>
+                    <Field label="SEO სათაური">
+                      <input value={editingPage.seoTitle || ''} onChange={(e) => setEditingPage(prev => ({ ...prev, seoTitle: e.target.value }))} className={inputClass} placeholder={editingPage.title} />
+                    </Field>
+                    <Field label="SEO აღწერა">
+                      <input value={editingPage.seoDescription || ''} onChange={(e) => setEditingPage(prev => ({ ...prev, seoDescription: e.target.value }))} className={inputClass} />
+                    </Field>
+                  </div>
+
+                  {!navigationItems.some(n => n.url === `/${editingPage.slug}`) && (
+                    <Toggle checked={!!editingPage.navVisible} onChange={(v) => setEditingPage(prev => ({ ...prev, navVisible: v }))} label="მენიუში დამატება შენახვისას" />
+                  )}
                 </div>
 
                 <div className="p-4 bg-[#00241a] border-t border-[#c7a85b]/20 flex justify-end gap-3">
-                  <button type="button" onClick={() => setIsPageFormOpen(false)} className="px-5 py-2 rounded-xl text-xs border border-white/20 text-white">გაუქმება</button>
+                  <button type="button" onClick={() => { setIsPageFormOpen(false); setHasUnsavedChanges(false); }} className="px-5 py-2 rounded-xl text-xs border border-white/20 text-white">გაუქმება</button>
                   <button type="submit" className="bg-[#c7a85b] text-[#00241a] font-bold text-xs px-6 py-2 rounded-xl">გვერდის შენახვა</button>
                 </div>
               </form>
@@ -1220,12 +1361,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
                   <p className="text-xs text-[#a4d0be]">მართეთ სექციების ტექსტები, სურათები, ბმულები, თანმიმდევრობა და ხილვადობა</p>
                 </div>
 
-                <button
-                  onClick={handleAddSection}
-                  className="bg-[#c7a85b] hover:bg-[#ffdf95] text-[#00241a] font-bold text-xs px-5 py-3 rounded-2xl transition-all cursor-pointer flex items-center gap-2 shadow-lg"
-                >
-                  <Plus size={16} /> ახალი სექციის დამატება
-                </button>
+                <div className="flex gap-2">
+                  <select
+                    value=""
+                    onChange={(e) => { if (e.target.value) handleAddSection(e.target.value as HomepageSection['sectionKey']); }}
+                    className="bg-[#c7a85b] text-[#00241a] font-bold text-xs px-4 py-3 rounded-2xl cursor-pointer focus:outline-none"
+                  >
+                    <option value="">+ ახალი სექციის დამატება...</option>
+                    <option value="custom">ტექსტი + სურათი (თავისუფალი)</option>
+                    <option value="hero">მთავარი ბანერი</option>
+                    <option value="intro">შესავალი / ფილოსოფია</option>
+                    <option value="featured_content">რჩეული სტატიები</option>
+                    <option value="latest_articles">ბოლო სტატიები</option>
+                    <option value="cta">მოწოდება მოქმედებისკენ (CTA)</option>
+                  </select>
+                </div>
               </div>
 
               <div className="space-y-6">
@@ -1242,7 +1392,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
                             {section.sectionKey === 'hero' ? 'მთავარი ბანერი (Hero)' :
                              section.sectionKey === 'intro' ? 'შესავალი / ფილოსოფია (Intro)' :
                              section.sectionKey === 'cta' ? 'მოწოდება მოქმედებისკენ (CTA)' :
-                             `${section.sectionKey.replace('_', ' ')} სექცია`}
+                             section.sectionKey === 'featured_content' ? 'რჩეული სტატიები' :
+                             section.sectionKey === 'latest_articles' ? 'ბოლო სტატიები' :
+                             'თავისუფალი სექცია'}
                           </h3>
                           <span className="text-[10px] text-[#c7a85b]">რიგი #{section.sortOrder}</span>
                         </div>
@@ -1263,7 +1415,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
                           გამოჩნდეს მთავარ გვერდზე
                         </label>
 
-                        {section.sectionKey === 'custom' && (
+                        {(
                           <button
                             onClick={() => handleDeleteSection(section.id, section.title)}
                             title="სექციის წაშლა"
@@ -1310,16 +1462,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
                     {/* Content Body */}
                     <div className="space-y-1 text-xs">
                       <label className="font-bold text-[#c7a85b]">სექციის შინაარსი / აღწერა</label>
-                      <textarea
-                        rows={3}
+                      <RichTextEditor
                         value={section.content || ''}
-                        onChange={(e) => {
-                          const updated = [...sections];
-                          updated[idx].content = e.target.value;
-                          setSections(updated);
+                        onChange={(val) => {
+                          setSections(prev => prev.map((s, i) => (i === idx ? { ...s, content: val } : s)));
                         }}
-                        className="w-full bg-[#00241a] border border-[#c7a85b]/30 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-[#c7a85b]"
-                        placeholder="სექციის დეტალური ტექსტი..."
+                        minHeight={140}
+                        compact
                       />
                     </div>
 
@@ -1351,68 +1500,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
                             setSections(updated);
                           }}
                           className="w-full bg-[#00241a] border border-[#c7a85b]/30 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-[#c7a85b]"
-                          placeholder="workspace / academic / https://..."
+                          placeholder="/workspace, /academic, /page-slug, https://..."
+                          list="admin-link-suggestions"
                         />
                       </div>
                     </div>
 
-                    {/* Image URL & Background Image URL */}
+                    {/* Image & Background Image */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-                      <div className="space-y-1">
-                        <label className="font-bold text-[#c7a85b]">სურათის URL (Image)</label>
-                        <div className="flex gap-2">
-                          <input
-                            type="text"
-                            value={section.imageUrl || ''}
-                            onChange={(e) => {
-                              const updated = [...sections];
-                              updated[idx].imageUrl = e.target.value;
-                              setSections(updated);
-                            }}
-                            className="flex-1 bg-[#00241a] border border-[#c7a85b]/30 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none"
-                            placeholder="https://..."
-                          />
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setMediaTargetField('sectionImage');
-                              setMediaTargetSectionIndex(idx);
-                              setIsMediaModalOpen(true);
-                            }}
-                            className="bg-[#c7a85b]/20 hover:bg-[#c7a85b] text-[#c7a85b] hover:text-[#00241a] px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1 shrink-0"
-                          >
-                            <ImageIcon size={14} /> სურათი
-                          </button>
-                        </div>
-                      </div>
-
-                      <div className="space-y-1">
-                        <label className="font-bold text-[#c7a85b]">ფონის სურათის URL (Background)</label>
-                        <div className="flex gap-2">
-                          <input
-                            type="text"
-                            value={section.bgImageUrl || ''}
-                            onChange={(e) => {
-                              const updated = [...sections];
-                              updated[idx].bgImageUrl = e.target.value;
-                              setSections(updated);
-                            }}
-                            className="flex-1 bg-[#00241a] border border-[#c7a85b]/30 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none"
-                            placeholder="https://..."
-                          />
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setMediaTargetField('sectionBg');
-                              setMediaTargetSectionIndex(idx);
-                              setIsMediaModalOpen(true);
-                            }}
-                            className="bg-[#c7a85b]/20 hover:bg-[#c7a85b] text-[#c7a85b] hover:text-[#00241a] px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1 shrink-0"
-                          >
-                            <ImageIcon size={14} /> ფონი
-                          </button>
-                        </div>
-                      </div>
+                      <Field label="სურათი">
+                        <MediaInput value={section.imageUrl || ''} onChange={(url) => setSections(prev => prev.map((s, i) => (i === idx ? { ...s, imageUrl: url } : s)))} />
+                      </Field>
+                      <Field label="ფონის სურათი">
+                        <MediaInput value={section.bgImageUrl || ''} onChange={(url) => setSections(prev => prev.map((s, i) => (i === idx ? { ...s, bgImageUrl: url } : s)))} />
+                      </Field>
                     </div>
 
                     <div className="flex justify-end pt-2">
@@ -1446,7 +1547,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
                       url: '/',
                       isExternal: false,
                       isVisible: true,
-                      sortOrder: navigationItems.length + 1
+                      sortOrder: navigationItems.filter(n => !n.parentId).length + 1
                     };
                     handleSaveNavigation([...navigationItems, newItem]);
                   }}
@@ -1457,62 +1558,104 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
               </div>
 
               <div className="bg-[#0b251c] border border-[#c7a85b]/30 rounded-3xl p-6 space-y-4 shadow-xl">
-                {navigationItems.map((item, idx) => (
-                  <div key={item.id} className="bg-[#00241a] p-4 rounded-2xl border border-white/10 flex flex-col sm:flex-row items-center gap-4">
-                    <div className="flex items-center gap-2">
-                      <button onClick={() => {
-                        const newNav = [...navigationItems];
-                        if (idx > 0) {
-                          const temp = newNav[idx];
-                          newNav[idx] = newNav[idx - 1];
-                          newNav[idx - 1] = temp;
-                          handleSaveNavigation(newNav);
-                        }
-                      }} className="hover:text-[#c7a85b] p-1"><ArrowUp size={14} /></button>
-                      <button onClick={() => {
-                        const newNav = [...navigationItems];
-                        if (idx < newNav.length - 1) {
-                          const temp = newNav[idx];
-                          newNav[idx] = newNav[idx + 1];
-                          newNav[idx + 1] = temp;
-                          handleSaveNavigation(newNav);
-                        }
-                      }} className="hover:text-[#c7a85b] p-1"><ArrowDown size={14} /></button>
+                <p className="text-[11px] text-[#a4d0be]/70">
+                  ბმულის მაგალითები: <code>/</code>, <code>/founder</code>, <code>/academic</code>, <code>/events</code>, <code>/#about-philosophy</code>, CMS გვერდი: <code>/resources</code>, გარე: <code>https://...</code>.
+                  ქვემენიუსთვის აირჩიეთ „მშობელი“ ელემენტი.
+                </p>
+                {[...navigationItems.filter(n => !n.parentId), ...navigationItems.filter(n => n.parentId)]
+                  .sort((a, b) => {
+                    const ka = a.parentId ? navigationItems.find(n => n.id === a.parentId)?.sortOrder ?? 0 : a.sortOrder;
+                    const kb = b.parentId ? navigationItems.find(n => n.id === b.parentId)?.sortOrder ?? 0 : b.sortOrder;
+                    return ka - kb || (a.parentId ? 1 : 0) - (b.parentId ? 1 : 0) || a.sortOrder - b.sortOrder;
+                  })
+                  .map((item) => {
+                  const idx = navigationItems.findIndex(n => n.id === item.id);
+                  const update = (patch: Partial<NavigationItem>) =>
+                    setNavigationItems(prev => prev.map(n => (n.id === item.id ? { ...n, ...patch } : n)));
+                  const siblings = navigationItems.filter(n => (n.parentId || '') === (item.parentId || '')).sort((a, b) => a.sortOrder - b.sortOrder);
+                  const moveItem = (dir: -1 | 1) => {
+                    const pos = siblings.findIndex(n => n.id === item.id);
+                    const target = siblings[pos + dir];
+                    if (!target) return;
+                    handleSaveNavigation(navigationItems.map(n =>
+                      n.id === item.id ? { ...n, sortOrder: target.sortOrder } : n.id === target.id ? { ...n, sortOrder: item.sortOrder } : n
+                    ));
+                  };
+                  return (
+                  <div key={item.id} className={`bg-[#00241a] p-4 rounded-2xl border border-white/10 flex flex-col lg:flex-row lg:items-center gap-3 ${item.parentId ? 'lg:ml-10 border-l-4 border-l-[#c7a85b]/50' : ''} ${item.isVisible ? '' : 'opacity-50'}`}>
+                    <div className="flex items-center gap-1">
+                      <button onClick={() => moveItem(-1)} className="hover:text-[#c7a85b] p-1 cursor-pointer"><ArrowUp size={14} /></button>
+                      <button onClick={() => moveItem(1)} className="hover:text-[#c7a85b] p-1 cursor-pointer"><ArrowDown size={14} /></button>
                     </div>
 
                     <input
                       type="text"
                       value={item.label}
-                      onChange={(e) => {
-                        const newNav = [...navigationItems];
-                        newNav[idx].label = e.target.value;
-                        setNavigationItems(newNav);
-                      }}
-                      className="bg-[#0b251c] border border-white/20 rounded-xl px-3 py-1.5 text-xs text-white w-36"
+                      onChange={(e) => update({ label: e.target.value })}
+                      className="bg-[#0b251c] border border-white/20 rounded-xl px-3 py-1.5 text-xs text-white lg:w-48"
+                      placeholder="წარწერა"
                     />
 
-                    <input
-                      type="text"
-                      value={item.url}
-                      onChange={(e) => {
-                        const newNav = [...navigationItems];
-                        newNav[idx].url = e.target.value;
-                        setNavigationItems(newNav);
-                      }}
-                      className="bg-[#0b251c] border border-white/20 rounded-xl px-3 py-1.5 text-xs text-white flex-1"
-                    />
+                    <div className="flex items-center gap-1 flex-1">
+                      <Link2 size={14} className="text-[#c7a85b] shrink-0" />
+                      <input
+                        type="text"
+                        value={item.url}
+                        onChange={(e) => update({ url: e.target.value, isExternal: /^https?:/i.test(e.target.value) })}
+                        className="bg-[#0b251c] border border-white/20 rounded-xl px-3 py-1.5 text-xs text-white flex-1"
+                        list="admin-link-suggestions"
+                        placeholder="/founder"
+                      />
+                    </div>
+
+                    <select
+                      value={item.parentId || ''}
+                      onChange={(e) => update({ parentId: e.target.value || undefined })}
+                      className="bg-[#0b251c] border border-white/20 rounded-xl px-2 py-1.5 text-xs text-white"
+                      title="მშობელი ელემენტი (ქვემენიუსთვის)"
+                    >
+                      <option value="">— მთავარი დონე —</option>
+                      {navigationItems.filter(n => !n.parentId && n.id !== item.id).map(n => (
+                        <option key={n.id} value={n.id}>↳ {n.label}</option>
+                      ))}
+                    </select>
+
+                    <Toggle checked={item.isVisible} onChange={(v) => update({ isVisible: v })} label="ჩანს" />
 
                     <button
                       onClick={() => {
-                        const newNav = navigationItems.filter(n => n.id !== item.id);
+                        const newNav = navigationItems
+                          .filter(n => n.id !== item.id)
+                          .map(n => (n.parentId === item.id ? { ...n, parentId: undefined } : n));
                         handleSaveNavigation(newNav);
                       }}
-                      className="text-red-400 hover:text-red-300 p-2"
+                      title="წაშლა"
+                      className="text-red-400 hover:text-red-300 p-2 cursor-pointer"
                     >
                       <Trash2 size={16} />
                     </button>
+                    <span className="hidden">{idx}</span>
                   </div>
-                ))}
+                  );
+                })}
+
+                <div className="flex flex-wrap gap-2 pt-2">
+                  <select
+                    value=""
+                    onChange={(e) => {
+                      const page = pages.find(p => p.id === e.target.value);
+                      if (!page) return;
+                      handleSaveNavigation([...navigationItems, {
+                        id: `nav-${Date.now()}`, label: page.title, url: `/${page.slug}`,
+                        isExternal: false, isVisible: true, sortOrder: navigationItems.filter(n => !n.parentId).length + 1
+                      }]);
+                    }}
+                    className="bg-[#00241a] border border-[#c7a85b]/30 text-white rounded-xl px-3 py-2.5 text-xs"
+                  >
+                    <option value="">+ CMS გვერდის დამატება მენიუში...</option>
+                    {pages.map(p => <option key={p.id} value={p.id}>{p.title} (/{p.slug})</option>)}
+                  </select>
+                </div>
 
                 <button
                   onClick={() => handleSaveNavigation(navigationItems)}
@@ -1533,21 +1676,30 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
                   <p className="text-xs text-[#a4d0be]">ატვირთული სურათები და ფაილები</p>
                 </div>
                 <button
-                  onClick={() => {
-                    setMediaTargetField(null);
-                    setIsMediaModalOpen(true);
-                  }}
+                  onClick={() => setIsMediaModalOpen(true)}
                   className="bg-[#c7a85b] text-[#00241a] font-bold text-xs px-5 py-2.5 rounded-2xl cursor-pointer"
                 >
-                  ატვირთვის გალერეის გახსნა
+                  <Plus size={14} className="inline mr-1" /> ფაილის ატვირთვა
                 </button>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              {mediaList.length === 0 && (
+                <p className="text-xs text-[#a4d0be]/70 italic">ბიბლიოთეკა ცარიელია — ატვირთეთ პირველი სურათი.</p>
+              )}
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
                 {mediaList.map((m) => (
-                  <div key={m.id} className="bg-[#0b251c] border border-white/10 rounded-2xl p-3 space-y-2">
-                    <img src={m.url} alt={m.filename} className="aspect-square w-full object-cover rounded-xl" />
-                    <p className="text-[10px] text-white font-mono truncate">{m.filename}</p>
+                  <div key={m.id} className="bg-[#0b251c] border border-white/10 rounded-2xl p-3 space-y-2 group">
+                    {m.mimeType === 'application/pdf' ? (
+                      <a href={m.url} target="_blank" rel="noopener noreferrer" className="aspect-square w-full rounded-xl bg-[#00241a] flex items-center justify-center text-[#c7a85b] text-2xl font-bold">PDF</a>
+                    ) : (
+                      <img src={m.url} alt={m.altText || m.filename} className="aspect-square w-full object-cover rounded-xl" />
+                    )}
+                    <p className="text-[10px] text-white font-mono truncate" title={m.filename}>{m.altText || m.filename}</p>
+                    <p className="text-[10px] text-[#a4d0be]/60">{(m.size / 1024).toFixed(0)} KB</p>
+                    <div className="flex gap-1.5">
+                      <button onClick={() => copyMediaUrl(m.url)} className="flex-1 text-[10px] bg-[#00241a] border border-white/10 hover:border-[#c7a85b] text-[#a4d0be] rounded-lg py-1.5 cursor-pointer flex items-center justify-center gap-1"><Copy size={11} /> ბმული</button>
+                      <button onClick={() => handleDeleteMedia(m)} className="text-[10px] bg-red-950/60 text-red-400 hover:bg-red-600 hover:text-white rounded-lg px-2 cursor-pointer"><Trash2 size={11} /></button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -1605,12 +1757,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
                           </span>
                         </td>
                         <td className="p-4 text-right">
-                          <button
-                            onClick={() => handleToggleUserStatus(u.id, u.status || 'active')}
-                            className="bg-[#00241a] border border-white/20 px-3 py-1 rounded-xl text-xs font-bold hover:bg-white/10"
-                          >
-                            {u.status === 'active' ? 'დეაქტივაცია' : 'გააქტიურება'}
-                          </button>
+                          <div className="flex justify-end gap-2">
+                            <button
+                              onClick={() => handleChangeUserRole(u)}
+                              className="bg-[#00241a] border border-[#c7a85b]/30 text-[#c7a85b] px-3 py-1 rounded-xl text-xs font-bold hover:bg-[#c7a85b]/20 cursor-pointer"
+                            >
+                              {u.role === 'admin' ? 'ადმინის მოხსნა' : 'ადმინად დანიშვნა'}
+                            </button>
+                            <button
+                              onClick={() => handleToggleUserStatus(u.id, u.status || 'active')}
+                              className="bg-[#00241a] border border-white/20 px-3 py-1 rounded-xl text-xs font-bold hover:bg-white/10 cursor-pointer"
+                            >
+                              {u.status === 'active' ? 'დეაქტივაცია' : 'გააქტიურება'}
+                            </button>
+                            <button onClick={() => handleDeleteUser(u)} className="p-1.5 bg-red-950/60 text-red-400 hover:bg-red-600 hover:text-white rounded-xl cursor-pointer"><Trash2 size={13} /></button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -1620,63 +1781,41 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
             </div>
           )}
 
-          {/* ----------------- TAB 8: SETTINGS ----------------- */}
+          {/* ----------------- SITE CONTENT ----------------- */}
+          {activeTab === 'content' && <ContentEditor showToast={showToast} onDirtyChange={setHasUnsavedChanges} />}
+
+          {/* ----------------- COLLECTIONS ----------------- */}
+          {(['courses', 'resources', 'blogs', 'events'] as const).map(key => activeTab === key && (
+            <CollectionManager key={key} {...COLLECTIONS[key]} showToast={showToast} onDirtyChange={setHasUnsavedChanges} />
+          ))}
+
+          {/* ----------------- INBOX ----------------- */}
+          {(activeTab === 'registrations' || activeTab === 'inquiries') && (
+            <InboxManager key={activeTab} kind={activeTab} showToast={showToast} onChanged={fetchOverview} />
+          )}
+
+          {activeTab === 'seo' && <SeoManager showToast={showToast} />}
+
+          {/* ----------------- ACCOUNT / PASSWORD ----------------- */}
           {activeTab === 'settings' && (
-            <form onSubmit={handleSaveSettings} className="space-y-6 animate-fade-in max-w-3xl">
+            <form onSubmit={handleChangePassword} className="space-y-6 animate-fade-in max-w-xl">
               <div>
-                <h2 className="text-2xl font-bold font-display-lg text-white">საიტის გლობალური პარამეტრები</h2>
-                <p className="text-xs text-[#a4d0be]">მართეთ საიტის ტექსტები, საკონტაქტო ინფორმაცია და ბრენდინგი</p>
+                <h2 className="text-2xl font-bold font-display-lg text-white">ანგარიში და პაროლი</h2>
+                <p className="text-xs text-[#a4d0be]">{adminName ? `შესული ხართ როგორც: ${adminName}` : ''}</p>
               </div>
-
               <div className="bg-[#0b251c] border border-[#c7a85b]/30 rounded-3xl p-6 space-y-4 shadow-xl">
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-[#c7a85b]">ვებ-საიტის სათაური</label>
-                  <input
-                    type="text"
-                    value={siteSettings.siteTitle || ''}
-                    onChange={(e) => setSiteSettings((prev: any) => ({ ...prev, siteTitle: e.target.value }))}
-                    className="w-full bg-[#00241a] border border-[#c7a85b]/30 rounded-xl px-4 py-2.5 text-xs text-white"
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-[#c7a85b]">საკონტაქტო ელ-ფოსტა</label>
-                    <input
-                      type="text"
-                      value={siteSettings.footerContactEmail || ''}
-                      onChange={(e) => setSiteSettings((prev: any) => ({ ...prev, footerContactEmail: e.target.value }))}
-                      className="w-full bg-[#00241a] border border-[#c7a85b]/30 rounded-xl px-4 py-2.5 text-xs text-white"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-[#c7a85b]">საკონტაქტო ტელეფონი</label>
-                    <input
-                      type="text"
-                      value={siteSettings.footerContactPhone || ''}
-                      onChange={(e) => setSiteSettings((prev: any) => ({ ...prev, footerContactPhone: e.target.value }))}
-                      className="w-full bg-[#00241a] border border-[#c7a85b]/30 rounded-xl px-4 py-2.5 text-xs text-white"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-[#c7a85b]">ფუტერის საავტორო უფლებები</label>
-                  <input
-                    type="text"
-                    value={siteSettings.footerCopyright || ''}
-                    onChange={(e) => setSiteSettings((prev: any) => ({ ...prev, footerCopyright: e.target.value }))}
-                    className="w-full bg-[#00241a] border border-[#c7a85b]/30 rounded-xl px-4 py-2.5 text-xs text-white"
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  className="bg-[#c7a85b] text-[#00241a] font-bold text-xs px-6 py-2.5 rounded-xl cursor-pointer"
-                >
-                  პარამეტრების შენახვა
-                </button>
+                <Field label="მიმდინარე პაროლი">
+                  <input type="password" required value={passwordForm.currentPassword} onChange={(e) => setPasswordForm(p => ({ ...p, currentPassword: e.target.value }))} className={inputClass} autoComplete="current-password" />
+                </Field>
+                <Field label="ახალი პაროლი" help="მინიმუმ 6 სიმბოლო">
+                  <input type="password" required minLength={6} value={passwordForm.newPassword} onChange={(e) => setPasswordForm(p => ({ ...p, newPassword: e.target.value }))} className={inputClass} autoComplete="new-password" />
+                </Field>
+                <Field label="გაიმეორეთ ახალი პაროლი">
+                  <input type="password" required minLength={6} value={passwordForm.confirm} onChange={(e) => setPasswordForm(p => ({ ...p, confirm: e.target.value }))} className={inputClass} autoComplete="new-password" />
+                </Field>
+                <button type="submit" className="bg-[#c7a85b] text-[#00241a] font-bold text-xs px-6 py-2.5 rounded-xl cursor-pointer">პაროლის შეცვლა</button>
               </div>
+              <p className="text-xs text-[#a4d0be]/70">საიტის სახელი, კონტაქტები და ფუტერი იცვლება ჩანართში „საიტის ტექსტები და სურათები“.</p>
             </form>
           )}
 
@@ -1709,9 +1848,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onNavi
       {/* Media Library Modal */}
       <MediaLibraryModal
         isOpen={isMediaModalOpen}
-        onClose={() => setIsMediaModalOpen(false)}
-        onSelectImage={handleMediaSelect}
+        onClose={() => { setIsMediaModalOpen(false); fetchMedia(); }}
+        onSelectImage={() => fetchMedia()}
       />
+
+      <datalist id="admin-link-suggestions">
+        {['/', '/founder', '/academic', '/events', '/practice', '/workspace', '/#about-philosophy', ...pages.map(p => `/${p.slug}`), ...posts.map(p => `/post/${p.slug}`)].map(l => <option key={l} value={l} />)}
+      </datalist>
 
       {/* Confirmation Modal */}
       <ConfirmModal
